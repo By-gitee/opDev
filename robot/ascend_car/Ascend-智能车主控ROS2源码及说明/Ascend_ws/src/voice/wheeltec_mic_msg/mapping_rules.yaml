@@ -1,0 +1,15 @@
+-
+  ros1_package_name: 'xf_mic_asr_offline'
+  ros1_message_name: 'Position'
+  ros2_package_name: 'wheeltec_mic_msg'
+  ros2_message_name: 'Position'
+-
+  ros1_package_name: 'xf_mic_asr_offline'
+  ros1_service_name: 'GetOfflineResultsrv'
+  ros2_package_name: 'wheeltec_mic_msg'
+  ros2_service_name: 'GetOfflineResultsrv'
+-
+  ros1_package_name: 'xf_mic_asr_offline'
+  ros1_service_name: 'SetMajorMicsrv'
+  ros2_package_name: 'wheeltec_mic_msg'
+  ros2_service_name: 'SetMajorMicsrv'

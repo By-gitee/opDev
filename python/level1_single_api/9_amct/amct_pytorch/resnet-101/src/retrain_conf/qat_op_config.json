@@ -1,0 +1,47 @@
+{
+    "skip_layers": [
+        "layer3.11.conv3"
+    ],
+    "Conv2d": {
+        "retrain_data_config": {
+            "dst_type": "INT8",
+            "batch_num": 10,
+            "fixed_min": false,
+            "clip_min": null,
+            "clip_max": null
+        },
+        "retrain_weight_config": {
+            "dst_type": "INT8",
+            "weights_retrain_algo": "arq_retrain",
+            "channel_wise": true
+        }
+    },
+    "ConvTranspose2d": {
+        "retrain_data_config": {
+            "dst_type": "INT8",
+            "batch_num": 10,
+            "fixed_min": false,
+            "clip_min": -1.0,
+            "clip_max": 1.0
+        },
+        "retrain_weight_config": {
+            "dst_type": "INT8",
+            "weights_retrain_algo": "arq_retrain",
+            "channel_wise": false
+        }
+    },
+    "Linear": {
+        "retrain_data_config": {
+            "dst_type": "INT8",
+            "batch_num": 10,
+            "fixed_min": false,
+            "clip_min": null,
+            "clip_max": null
+        },
+        "retrain_weight_config": {
+            "dst_type": "INT8",
+            "weights_retrain_algo": "ulq_retrain",
+            "channel_wise": false
+        }
+    }
+}

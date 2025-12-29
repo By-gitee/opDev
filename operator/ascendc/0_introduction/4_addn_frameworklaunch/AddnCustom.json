@@ -1,0 +1,29 @@
+[
+    {
+        "op": "AddnCustom",
+        "input_desc": [
+            {
+                "name": "srcList",
+                "param_type": "dynamic",
+                "format": [
+                    "ND"
+                ],
+                "type": [
+                    "float16"
+                ]
+            }
+        ],
+        "output_desc": [
+            {
+                "name": "dst",
+                "param_type": "required",
+                "format": [
+                    "ND"
+                ],
+                "type": [
+                    "float16"
+                ]
+            }
+        ]
+    }
+]

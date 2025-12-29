@@ -1,0 +1,15 @@
+.\obj\svd.o: USER\algo\svd.c
+.\obj\svd.o: USER\algo\svd.h
+.\obj\svd.o: USER\algo\rtwtypes.h
+.\obj\svd.o: D:\Keil\ARM\ARMCC\bin\..\include\stddef.h
+.\obj\svd.o: D:\Keil\ARM\ARMCC\bin\..\include\stdlib.h
+.\obj\svd.o: USER\algo\rt_nonfinite.h
+.\obj\svd.o: D:\Keil\ARM\ARMCC\bin\..\include\stdbool.h
+.\obj\svd.o: USER\algo\xaxpy.h
+.\obj\svd.o: USER\algo\xdotc.h
+.\obj\svd.o: USER\algo\xnrm2.h
+.\obj\svd.o: USER\algo\xrot.h
+.\obj\svd.o: USER\algo\xrotg.h
+.\obj\svd.o: USER\algo\xswap.h
+.\obj\svd.o: D:\Keil\ARM\ARMCC\bin\..\include\math.h
+.\obj\svd.o: D:\Keil\ARM\ARMCC\bin\..\include\string.h

@@ -1,0 +1,58 @@
+[
+    {
+        "op": "AddCustom",
+        "language": "cpp",
+        "input_desc": [
+            {
+                "name": "x",
+                "param_type": "required",
+                "format": [
+                    "ND",
+                    "ND",
+                    "ND",
+                    "ND"
+                ],
+                "type": [
+                    "float",
+                    "float16",
+                    "int32",
+                    "int8"
+                ]
+            },
+            {
+                "name": "y",
+                "param_type": "required",
+                "format": [
+                    "ND",
+                    "ND",
+                    "ND",
+                    "ND"
+                ],
+                "type": [
+                    "float",
+                    "float16",
+                    "int32",
+                    "int8"
+                ]
+            }
+        ],
+        "output_desc": [
+            {
+                "name": "z",
+                "param_type": "required",
+                "format": [
+                    "ND",
+                    "ND",
+                    "ND",
+                    "ND"
+                ],
+                "type": [
+                    "float",
+                    "float16",
+                    "int32",
+                    "int8"
+                ]
+            }
+        ]
+    }
+]

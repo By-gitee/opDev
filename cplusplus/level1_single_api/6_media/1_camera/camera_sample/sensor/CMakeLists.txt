@@ -1,0 +1,2 @@
+add_subdirectory(sony_imx219)
+add_subdirectory(sony_imx477)

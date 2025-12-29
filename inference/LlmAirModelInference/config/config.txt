@@ -1,0 +1,14 @@
+fullInputShapes=4,1024;4,1,1024,1024;4,1024;4
+fullInputDataTypes=DT_INT64;DT_FLOAT16;DT_INT64;DT_INT64
+fullInputFiles=./full/input_ids.bin;./full/attention_mask.bin;./full/position_ids.bin;./full/updated_kv_positions.bin
+incInputShapes=4,1;4,1,1,2048;4,1;4,1;0
+incInputDataTypes=DT_INT64;DT_FLOAT16;DT_INT64;DT_INT64;DT_INT64
+incInputFiles=./inc/input_ids.bin;./inc/attention_mask.bin;./inc/position_ids.bin;./inc/updated_kv_positions.bin;./inc/kv_padding_size.bin
+kvShapes=4,2048,1,128
+kvDataTypes=DT_FLOAT16
+kvNum=160
+fullLoopNumber=1
+incLoopNumber=1
+groupNameList=[{"group_name":"name","group_rank_list":[0,1,2,3,4,5,6,7]}]
+socVersion=Ascend910B4
+rankTableFile=../../config/hccl_8p.json

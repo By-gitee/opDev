@@ -1,0 +1,58 @@
+[
+    {
+        "op": "AddcdivCustom",
+        "language": "cpp",
+        "input_desc": [
+            {
+                "name": "x",
+                "param_type": "required",
+                "format": [
+                    "ND"
+                ],
+                "type": [
+                    "fp16"
+                ]
+            },
+            {
+                "name": "y",
+                "param_type": "required",
+                "format": [
+                    "ND"
+                ],
+                "type": [
+                    "fp16"
+                ]
+            },
+            {
+                "name": "z",
+                "param_type": "required",
+                "format": [
+                    "ND"
+                ],
+                "type": [
+                    "fp16"
+                ]
+            }            
+        ],
+        "output_desc": [
+            {
+                "name": "out",
+                "param_type": "optional",
+                "format": [
+                    "ND"
+                ],
+                "type": [
+                    "fp16"
+                ]
+            }
+        ],
+        "attr": [
+            {
+              "name": "value",
+			  "param_type": "optional",
+              "type": "float",
+              "default_value": 1.0
+            }
+          ]
+    }
+]

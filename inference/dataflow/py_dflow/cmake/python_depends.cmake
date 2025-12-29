@@ -1,0 +1,12 @@
+if (BUILD_OPEN_PROJECT)
+    set(Python3_EXECUTABLE ${HI_PYTHON})
+    find_package(Python3 REQUIRED Interpreter COMPONENTS Development)
+    set(HI_PYTHON_INC ${Python3_INCLUDE_DIRS})
+    # make sure pybind11 cmake can be use in find_package
+    execute_process(COMMAND ${HI_PYTHON} -m pybind11 --cmakedir OUTPUT_VARIABLE pybind11_DIR OUTPUT_STRIP_TRAILING_WHITESPACE)
+    find_package(pybind11 CONFIG REQUIRED)
+else ()
+    set(pybind11_INCLUDE_DIR ${HI_PYTHON_SITE_PACKAGE}/pybind11/include)
+endif ()
+cmake_print_variables(HI_PYTHON_INC)
+cmake_print_variables(pybind11_INCLUDE_DIR)

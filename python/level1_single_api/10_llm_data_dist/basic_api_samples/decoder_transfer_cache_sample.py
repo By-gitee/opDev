@@ -1,0 +1,128 @@
+"""
+# Copyright 2024 Huawei Technologies Co., Ltd
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+"""
+
+import argparse
+import logging
+import pickle
+import time
+import socket
+from typing import List
+from llm_datadist import LLMDataDist, LLMRole, LLMConfig, CacheDesc, KvCache, DataType, \
+    LLMClusterInfo, LLMStatusCode
+
+PROMPT_CLUSTER_ID = 0
+DECODER_CLUSTER_ID = 1
+
+# 用于被拉取KV的ip与port, 需要修改为实际device ip, 可以与多个Prompt建立链接
+PROMPT_CLUSTER_ID_TO_DEVICE_IP_LIST = {
+    PROMPT_CLUSTER_ID: ['192.168.1.1', '192.168.1.2', '192.168.1.3', '192.168.1.4',
+                        '192.168.1.5', '192.168.1.6', '192.168.1.7', '192.168.1.8'],
+}
+
+PROMPT_DEVICE_LISTEN_PORT = 26000
+# Decoder使用的device信息, 需要修改为实际device ip
+DECODER_DEVICE_IP_LIST = ['192.168.2.1', '192.168.2.2', '192.168.2.3', '192.168.2.4',
+                          '192.168.2.5', '192.168.2.6', '192.168.2.7', '192.168.2.8']
+DEVICE_ID_LIST = [0, 1, 2, 3, 4, 5, 6, 7]
+PROMPT_HOST_IP = '127.0.0.1'
+PROMPT_HOST_PORT_BASE = 27000
+
+logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
+
+
+def init_llm_datadist(rank_id: int) -> LLMDataDist:
+    datadist = LLMDataDist(LLMRole.DECODER, DECODER_CLUSTER_ID)
+    llm_config = LLMConfig()
+    llm_config.device_id = DEVICE_ID_LIST[rank_id]
+    llm_options = llm_config.generate_options()
+    datadist.init(llm_options)
+    return datadist
+
+
+def send_kv_addrs(kv_caches: List[KvCache], rank_id: int):
+    kv_tensor_addrs = []
+    for kv_cache in kv_caches:
+        kv_tensor_addrs.append(kv_cache.per_device_tensor_addrs[0])
+    req_data = pickle.dumps(kv_tensor_addrs)
+    sock = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
+    sock.connect((PROMPT_HOST_IP, 27000 + rank_id))
+    sock.send(req_data)
+    sock.close()
+
+
+def gen_cluster_info(rank_id: int) -> List[LLMClusterInfo]:
+    cluster_info_list = []
+    for prompt_cluster_id, device_ip_list in PROMPT_CLUSTER_ID_TO_DEVICE_IP_LIST.items():
+        cluster_info = LLMClusterInfo()
+        cluster_info.remote_cluster_id = prompt_cluster_id
+        cluster_info.append_remote_ip_info(device_ip_list[rank_id], PROMPT_DEVICE_LISTEN_PORT)
+        cluster_info.append_local_ip_info(DECODER_DEVICE_IP_LIST[rank_id], 0)
+        cluster_info_list.append(cluster_info)
+    return cluster_info_list
+
+
+def run_decoder_sample(rank_id: int):
+    # 1. 初始化llm_datadist
+    datadist = init_llm_datadist(rank_id)
+    logging.info('[initialize] llm_datadist success')
+    # 2. 和Prompt建立连接
+    cluster_info_list = gen_cluster_info(rank_id)
+    ret, rets = datadist.link_clusters(cluster_info_list, timeout=15000)
+    if ret != LLMStatusCode.LLM_SUCCESS:
+        raise RuntimeError(f'[link_cluster] failed, ret={ret}')
+    logging.info('[link_cluster] success')
+    # 3. 通过kv_cache_manager分配kv cache
+    kv_cache_manager = datadist.kv_cache_manager
+    cache_desc = CacheDesc(num_tensors=4, shape=[4, 4, 8], data_type=DataType.DT_FLOAT16)
+    cache_desc_blocks = CacheDesc(num_tensors=4, shape=[4, 4, 8], data_type=DataType.DT_FLOAT16)
+    kv_cache = kv_cache_manager.allocate_cache(cache_desc)
+    kv_cache_blocks = kv_cache_manager.allocate_cache(cache_desc_blocks)
+    logging.info('[allocate_cache] success')
+    # 4. 获取kv cache中tensor的内存地址，传递给prompt，此处使用socket简单处理，用户需根据实际场景实现地址的传输
+    send_kv_addrs([kv_cache, kv_cache_blocks], rank_id)
+    logging.info('[send_kv_addr] success')
+
+    # 5. 等待transfer_cache完成，之后打印各层结果
+    time.sleep(5)
+    logging.info('wait transfer_cache end')
+    kv_host_tensors_0 = kv_cache_manager.get_cache_tensors(kv_cache, 0)
+    kv_host_tensors_3 = kv_cache_manager.get_cache_tensors(kv_cache, 3)
+    kv_blocks_host_tensors_0 = kv_cache_manager.get_cache_tensors(kv_cache_blocks, 0)
+    kv_blocks_host_tensors_3 = kv_cache_manager.get_cache_tensors(kv_cache_blocks, 3)
+    logging.info('[get_cache_tensor] success')
+    logging.info(f'kv_cache batch_index = 0, tensor = {kv_host_tensors_0[0].numpy()[0, :]}')
+    logging.info(f'kv_cache batch_index = 3, tensor = {kv_host_tensors_3[0].numpy()[0, :]}')
+    logging.info(f'kv_cache_blocks batch_index = 0, tensor = {kv_blocks_host_tensors_0[0].numpy()[0, :]}')
+    logging.info(f'kv_cache_blocks batch_index = 3, tensor = {kv_blocks_host_tensors_3[0].numpy()[0, :]}')
+
+    kv_cache_manager.deallocate_cache(kv_cache)
+    logging.info('[deallocate_cache] success')
+    # 6. Finalize流程
+    ret, rets = datadist.unlink_clusters(cluster_info_list, 5000, True)
+    if ret != LLMStatusCode.LLM_SUCCESS:
+        raise RuntimeError(f'[unlink_cluster] failed, ret={ret}')
+    logging.info('[unlink_cluster] success')
+    datadist.finalize()
+    logging.info('[finalize] success')
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--rank_id", type=int, default=0, help='rank_id')
+    args = parser.parse_args()
+    logging.info(f'Sample start, rank_id = {args.rank_id}, device_id = {DEVICE_ID_LIST[args.rank_id]}')
+    run_decoder_sample(args.rank_id)
+    logging.info('Sample end')

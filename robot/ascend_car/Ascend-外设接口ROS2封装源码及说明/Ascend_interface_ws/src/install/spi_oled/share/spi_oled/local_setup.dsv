@@ -1,0 +1,2 @@
+source;share/spi_oled/environment/ament_prefix_path.sh
+source;share/spi_oled/environment/path.sh

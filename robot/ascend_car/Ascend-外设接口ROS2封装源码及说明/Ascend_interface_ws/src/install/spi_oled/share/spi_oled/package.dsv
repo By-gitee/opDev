@@ -1,0 +1,8 @@
+source;share/spi_oled/hook/cmake_prefix_path.ps1
+source;share/spi_oled/hook/cmake_prefix_path.dsv
+source;share/spi_oled/hook/cmake_prefix_path.sh
+source;share/spi_oled/local_setup.bash
+source;share/spi_oled/local_setup.dsv
+source;share/spi_oled/local_setup.ps1
+source;share/spi_oled/local_setup.sh
+source;share/spi_oled/local_setup.zsh

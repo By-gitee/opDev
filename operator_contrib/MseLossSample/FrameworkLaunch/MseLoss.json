@@ -1,0 +1,53 @@
+[
+    {
+        "op": "MseLoss",
+        "input_desc": [
+            {
+                "name": "predict",
+                "param_type": "required",
+                "format": [
+                    "ND",
+                    "ND"
+                ],
+                "type": [
+                    "fp16",
+                    "float"
+                ]
+            },
+            {
+                "name": "label",
+                "param_type": "required",
+                "format": [
+                    "ND",
+                    "ND"
+                ],
+                "type": [
+                    "fp16",
+                    "float"
+                ]
+            }
+        ],
+        "attr": [                                                                   
+            {
+                "name": "reduction",
+                "param_type": "optional",
+                "type": "string",
+                "default_value": "mean"
+            }
+        ],
+        "output_desc": [
+            {
+                "name": "y",
+                "param_type": "required",
+                "format": [
+                    "ND",
+                    "ND"
+                ],
+                "type": [
+                    "fp16",
+                    "float"
+                ]
+            }
+        ]
+    }
+]

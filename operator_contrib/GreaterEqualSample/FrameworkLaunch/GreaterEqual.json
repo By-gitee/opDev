@@ -1,0 +1,58 @@
+[
+    {
+        "op": "GreaterEqual",
+        "language": "cpp",
+        "input_desc": [
+            {
+                "name": "x1",
+                "param_type": "required",
+                "format": [
+                    "ND",
+                    "ND",
+                    "ND",
+                    "ND"
+                ],
+                "type": [
+                    "float16",
+                    "float32",
+                    "int8",
+                    "int32"
+                ]
+            },
+            {
+                "name": "x2",
+                "param_type": "required",
+                "format": [
+                    "ND",
+                    "ND",
+                    "ND",
+                    "ND"
+                ],
+                "type": [
+                    "float16",
+                    "float32",
+                    "int8",
+                    "int32"
+                ]
+            }
+        ],
+        "output_desc": [
+            {
+                "name": "y",
+                "param_type": "required",
+                "format": [
+                    "ND",
+                    "ND",
+                    "ND",
+                    "ND"
+                ],
+                "type": [
+                    "float16",
+                    "float32",
+                    "int8",
+                    "int32"
+                ]
+            }
+        ]
+    }
+]

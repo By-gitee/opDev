@@ -1,0 +1,73 @@
+[
+    {
+        "op": "QuantMatmulCustom",
+        "input_desc": [
+            {
+                "name": "a",
+                "param_type": "required",
+                "format": [
+                    "NCHW"
+                ],
+                "type": [
+                    "fp16"
+                ]
+            },
+            {
+                "name": "b",
+                "param_type": "required",
+                "format": [
+                    "NCHW"
+                ],
+                "type": [
+                    "uint8"
+                ]
+            },
+            {
+                "name": "scale",
+                "param_type": "optional",
+                "format": [
+                    "NCHW"
+                ],
+                "type": [
+                    "fp16"
+                ]
+            },
+            {
+                "name": "offset",
+                "param_type": "optional",
+                "format": [
+                    "NCHW"
+                ],
+                "type": [
+                    "fp16"
+                ]
+            }
+        ],
+        "output_desc": [
+            {
+                "name": "c",
+                "param_type": "required",
+                "format": [
+                    "NCHW"
+                ],
+                "type": [
+                    "fp16"
+                ]
+            }
+        ],
+        "attr": [
+            {
+                "name": "input1_shape",
+                "param_type": "optional",
+                "type": "list_int",
+                "default_value": "{1, 1}"
+            },
+            {
+                "name": "transformer_nd",
+                "param_type": "optional",
+                "type": "bool",
+                "default_value": true
+            }
+        ]
+    }
+]

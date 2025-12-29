@@ -1,0 +1,1 @@
+[cann-ops-adv仓的ifa](https://gitee.com/ascend/cann-ops-adv/tree/master/examples/transformer/incre_flash_attention)（待补充）

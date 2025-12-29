@@ -1,0 +1,14 @@
+.\obj\inversesolver_sdh4.o: USER\algo\InverseSolver_SDH4.c
+.\obj\inversesolver_sdh4.o: USER\algo\InverseSolver_SDH4.h
+.\obj\inversesolver_sdh4.o: USER\algo\rtwtypes.h
+.\obj\inversesolver_sdh4.o: D:\Keil\ARM\ARMCC\bin\..\include\stddef.h
+.\obj\inversesolver_sdh4.o: D:\Keil\ARM\ARMCC\bin\..\include\stdlib.h
+.\obj\inversesolver_sdh4.o: USER\algo\InverseSolver_SDH4_emxutil.h
+.\obj\inversesolver_sdh4.o: USER\algo\InverseSolver_SDH4_types.h
+.\obj\inversesolver_sdh4.o: D:\Keil\ARM\ARMCC\bin\..\include\stdbool.h
+.\obj\inversesolver_sdh4.o: USER\algo\rt_nonfinite.h
+.\obj\inversesolver_sdh4.o: USER\algo\svd.h
+.\obj\inversesolver_sdh4.o: USER\algo\rt_defines.h
+.\obj\inversesolver_sdh4.o: D:\Keil\ARM\ARMCC\bin\..\include\math.h
+.\obj\inversesolver_sdh4.o: D:\Keil\ARM\ARMCC\bin\..\include\stdio.h
+.\obj\inversesolver_sdh4.o: D:\Keil\ARM\ARMCC\bin\..\include\string.h

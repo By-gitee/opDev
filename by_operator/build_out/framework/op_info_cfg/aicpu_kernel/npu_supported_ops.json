@@ -1,0 +1,6 @@
+{
+  "SparseMatMulBase": {
+    "isGray": false,
+    "isHeavy": false
+  }
+}

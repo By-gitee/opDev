@@ -1,0 +1,53 @@
+{
+  "cluster": [
+    {
+      "cluster_nodes": [
+        {
+          "node_id": 0,
+          "node_type": "Fake",
+          "ipaddr": "127.0.0.1",
+          "port": -1,
+          "is_local": true,
+          "item_list": [
+            {
+              "item_id": 0,
+              "device_id": 0,
+              "ipaddr": "127.0.0.1"
+            },
+            {
+              "item_id": 1,
+              "device_id": 1,
+              "ipaddr": "127.0.0.1"
+            },
+            {
+              "item_id": 2,
+              "device_id": 2,
+              "ipaddr": "127.0.0.1"
+            },
+            {
+              "item_id": 3,
+              "device_id": 3,
+              "ipaddr": "127.0.0.1"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "node_def": [
+    {
+      "node_type": "FakeNodeType",
+      "resource_type": "Aarch",
+      "support_links": "[HCCS, PCIE, ROCE]",
+      "item_type": "FakeItemType"
+    }
+  ],
+  "item_def": [
+    {
+      "item_type": "FakeItemType",
+      "resource_type": "Ascend",
+      "memory": "[DDR:64GB]",
+      "aic_type": "[FakeAicType]"
+    }
+  ]
+}

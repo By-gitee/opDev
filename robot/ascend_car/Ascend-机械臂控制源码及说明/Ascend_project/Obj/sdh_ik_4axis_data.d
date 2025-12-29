@@ -1,0 +1,9 @@
+.\obj\sdh_ik_4axis_data.o: USER\algo\SDH_IK_4axis_data.c
+.\obj\sdh_ik_4axis_data.o: USER\algo\SDH_IK_4axis_data.h
+.\obj\sdh_ik_4axis_data.o: USER\algo\rtwtypes.h
+.\obj\sdh_ik_4axis_data.o: USER\algo\tmwtypes.h
+.\obj\sdh_ik_4axis_data.o: D:\Keil\ARM\ARMCC\bin\..\include\limits.h
+.\obj\sdh_ik_4axis_data.o: D:\Keil\ARM\ARMCC\bin\..\include\float.h
+.\obj\sdh_ik_4axis_data.o: D:\Keil\ARM\ARMCC\bin\..\include\stddef.h
+.\obj\sdh_ik_4axis_data.o: D:\Keil\ARM\ARMCC\bin\..\include\stdlib.h
+.\obj\sdh_ik_4axis_data.o: USER\algo\rt_nonfinite.h
