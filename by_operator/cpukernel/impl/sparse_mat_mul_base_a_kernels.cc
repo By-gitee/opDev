@@ -149,19 +149,26 @@ uint32_t SparseMatMulBaseACpuKernel::SparseMatMulComputeWithBlockBaseA(CpuKernel
 	uint32_t K = inputShape0->GetDimSize(1);
 	uint32_t N = inputShape1->GetDimSize(1);
 	uint32_t block_elem = block_size*block_size;
+  uint32_t A_block_row_start = blockX_id * block_size;
+  uint32_t A_block_col_start = blockY_id * block_size;
 
-  T* A_base_ptr = A + blockX_id*blockY_dim*block_elem + blockY_id*block_size;
-  T* B_base_ptr = B + blockY_id*block_size*N;
-  T* C_base_ptr = C + blockX_id*block_size*N;
+  uint32_t A_block_row_end = (A_block_row_start + block_size < M) ? A_block_row_start + block_size : M;
+  uint32_t A_block_col_end = (A_block_col_start + block_size < K) ? A_block_col_start + block_size : K;
 
-  for(uint32_t i=0;i<block_size;++i) {
-	for(uint32_t n=0;n<N;++n) {
-		T sum = (T)0.0;
-    	for(uint32_t j=0;j<block_size;++j) {
-			sum += A_base_ptr[i*K+j] * B_base_ptr[j*N+n];
-		}
-		C_base_ptr[i*N+n] += sum;
-	}
+  uint32_t actual_block_rows = A_block_row_end - A_block_row_start;
+  uint32_t actual_block_cols = A_block_col_end - A_block_col_start;
+
+  T* A_base_ptr = A + A_block_row_start * K + A_block_col_start;
+
+
+  for(uint32_t i = 0; i < actual_block_rows; ++i) {
+    for(uint32_t n = 0; n < N; ++n) {
+      T sum = static_cast<T>(0.0);
+      for(uint32_t j = 0; j < actual_block_cols; ++j) {
+        sum += A_base_ptr[i * K + j] * B[(A_block_col_start + j) * N + n];
+      }
+      C[(A_block_row_start + i) * N + n] += sum;
+    }
   }
   return SUCCESS;
 }
