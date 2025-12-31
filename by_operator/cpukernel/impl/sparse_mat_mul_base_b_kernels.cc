@@ -16,7 +16,7 @@ const uint32_t kFirstInputIndex = 0;
 const uint32_t kSecondInputIndex = 1;
 const uint32_t kFirstOutputIndex = 0;
 const uint32_t SUCCESS = 0;
-const uint32_t PARAM_INVAILD = 1;
+const uint32_t PARAM_INVALID = 1;
 const uint32_t ERROR = 2;
 }
 
@@ -29,7 +29,7 @@ uint32_t SparseMatMulBaseBCpuKernel::Compute(CpuKernelContext &ctx)
     Tensor* output = ctx.Output(kFirstOutputIndex);
     // Check input&output address
     if (input0 == nullptr || input1 == nullptr || output == nullptr) {
-        return PARAM_INVAILD;
+        return PARAM_INVALID;
     }
 
     auto inputShape0 = input0->GetTensorShape();
@@ -42,7 +42,7 @@ uint32_t SparseMatMulBaseBCpuKernel::Compute(CpuKernelContext &ctx)
     }
 	if(inputShape0->GetDimSize(1) != inputShape1->GetDimSize(0)) {
         CUST_KERNEL_LOG_DEBUG(ctx, "DataShape does not match.");
-        return PARAM_INVAILD;
+        return PARAM_INVALID;
 	}
 
     // Get input tensor DataType
@@ -50,7 +50,7 @@ uint32_t SparseMatMulBaseBCpuKernel::Compute(CpuKernelContext &ctx)
     DataType inputType1 = input1->GetDataType();
     if (inputType0 != inputType1) {
         CUST_KERNEL_LOG_DEBUG(ctx, "DataType does not match.");
-        return PARAM_INVAILD;
+        return PARAM_INVALID;
     }
 
 
@@ -60,7 +60,7 @@ uint32_t SparseMatMulBaseBCpuKernel::Compute(CpuKernelContext &ctx)
         case DT_FLOAT:
             return SparseMatMulComputeB<float>(ctx);
             default:
-            return PARAM_INVAILD;
+            return PARAM_INVALID;
     }
 
     // Maybe useful
@@ -132,15 +132,15 @@ uint32_t SparseMatMulBaseBCpuKernel::SparseMatMulComputeWithBlockBaseB(CpuKernel
 
   T *A = reinterpret_cast<T *>(input0->GetData());
   if (A == nullptr) {
-    return PARAM_INVAILD;
+    return PARAM_INVALID;
   }
   T *B = reinterpret_cast<T *>(input1->GetData());
   if (B == nullptr) {
-    return PARAM_INVAILD;
+    return PARAM_INVALID;
   }
   T *C = reinterpret_cast<T *>(output->GetData());
   if (C == nullptr) {
-    return PARAM_INVAILD;
+    return PARAM_INVALID;
   }
     auto inputShape0 = input0->GetTensorShape();
     auto inputShape1 = input1->GetTensorShape();
@@ -149,20 +149,36 @@ uint32_t SparseMatMulBaseBCpuKernel::SparseMatMulComputeWithBlockBaseB(CpuKernel
 	uint32_t K = inputShape0->GetDimSize(1);
 	uint32_t N = inputShape1->GetDimSize(1);
 	uint32_t block_elem = block_size*block_size;
+  uint32_t B_block_row_start = blockX_id * block_size;
+  uint32_t B_block_col_start = blockY_id * block_size;
 
-  T* A_base_ptr = A + blockX_id*block_size;
-  T* B_base_ptr = B + blockX_id*blockY_dim*block_elem + blockY_id*block_size;
-  T* C_base_ptr = C + blockY_id*block_size;
+  uint32_t B_block_row_end = (B_block_row_start + block_size < K) ? B_block_row_start + block_size : K;
+  uint32_t B_block_col_end = (B_block_col_start + block_size < N) ? B_block_col_start + block_size : N;
 
-  for(uint32_t i=0;i<block_size;++i) {
-	for(uint32_t n=0;n<M;++n) {
-		T sum = (T)0.0;
-    	for(uint32_t j=0;j<block_size;++j) {
-			sum += A_base_ptr[n*K+i] * B_base_ptr[i*N+j];
-		}
-		C_base_ptr[n*N+i] += sum;
-	}
+  uint32_t actual_block_rows = B_block_row_end - B_block_row_start;
+  uint32_t actual_block_cols = B_block_col_end - B_block_col_start;
+
+  T* B_base_ptr = B + B_block_row_start * N + B_block_col_start;
+
+
+  for(uint32_t j=0;j<actual_block_cols;++j) {
+    for(uint32_t m=0;m<M;++m) {
+        T sum = static_cast<T>(0.0);
+        for(uint32_t i=0;i<actual_block_rows;++i) {
+          sum += A[m*K+(B_block_row_start+i)] * B_base_ptr[i*N+j];
+        }
+		    C[m*N+(B_block_col_start+j)] += sum;
+    }
   }
+  // for(uint32_t j=0;j<actual_block_cols;++j) {
+  //   for(uint32_t m=0;m<M;++m) {
+  //       T sum = static_cast<T>(0.0);
+  //       for(uint32_t i=0;i<actual_block_rows;++i) {
+  //         sum += A_base_ptr[m*K+i] * B_base_ptr[i*N+j];
+  //       }
+	// 	C_base_ptr[m*N+(B_block_col_start+j)] += sum;
+  //   }
+  // }
   return SUCCESS;
 }
 

@@ -14,7 +14,7 @@ const uint32_t kFirstInputIndex = 0;
 const uint32_t kSecondInputIndex = 1;
 const uint32_t kFirstOutputIndex = 0;
 const uint32_t SUCCESS = 0;
-const uint32_t PARAM_INVAILD = 1;
+const uint32_t PARAM_INVALID = 1;
 const uint32_t ERROR = 2;
 }
 
@@ -27,7 +27,7 @@ uint32_t SparseMatMulBaseACpuKernel::Compute(CpuKernelContext &ctx)
     Tensor* output = ctx.Output(kFirstOutputIndex);
     // Check input&output address
     if (input0 == nullptr || input1 == nullptr || output == nullptr) {
-        return PARAM_INVAILD;
+        return PARAM_INVALID;
     }
 
     auto inputShape0 = input0->GetTensorShape();
@@ -40,7 +40,7 @@ uint32_t SparseMatMulBaseACpuKernel::Compute(CpuKernelContext &ctx)
     }
 	if(inputShape0->GetDimSize(1) != inputShape1->GetDimSize(0)) {
         CUST_KERNEL_LOG_DEBUG(ctx, "DataShape does not match.");
-        return PARAM_INVAILD;
+        return PARAM_INVALID;
 	}
 
     // Get input tensor DataType
@@ -48,7 +48,7 @@ uint32_t SparseMatMulBaseACpuKernel::Compute(CpuKernelContext &ctx)
     DataType inputType1 = input1->GetDataType();
     if (inputType0 != inputType1) {
         CUST_KERNEL_LOG_DEBUG(ctx, "DataType does not match.");
-        return PARAM_INVAILD;
+        return PARAM_INVALID;
     }
 
 
@@ -58,7 +58,7 @@ uint32_t SparseMatMulBaseACpuKernel::Compute(CpuKernelContext &ctx)
         case DT_FLOAT:
             return SparseMatMulComputeA<float>(ctx);
             default:
-            return PARAM_INVAILD;
+            return PARAM_INVALID;
     }
 
     // Maybe useful
@@ -131,15 +131,15 @@ uint32_t SparseMatMulBaseACpuKernel::SparseMatMulComputeWithBlockBaseA(CpuKernel
 
   T *A = reinterpret_cast<T *>(input0->GetData());
   if (A == nullptr) {
-    return PARAM_INVAILD;
+    return PARAM_INVALID;
   }
   T *B = reinterpret_cast<T *>(input1->GetData());
   if (B == nullptr) {
-    return PARAM_INVAILD;
+    return PARAM_INVALID;
   }
   T *C = reinterpret_cast<T *>(output->GetData());
   if (C == nullptr) {
-    return PARAM_INVAILD;
+    return PARAM_INVALID;
   }
 
     auto inputShape0 = input0->GetTensorShape();
