@@ -1,15 +1,16 @@
+
 /*
  * Copyright (c) Huawei Technologies Co., Ltd. 2020-2021. All rights reserved.
- * Description: implement of SparseMatMulBaseA
+ * Description: implement of SparseMatMulSVE
  */
-#include "sparse_mat_mul_base_a_kernels.h"
-#include<iostream>
-#include "cpu_tensor.h"
-#include "cpu_tensor_shape.h"
-#include "cpu_types.h"
-#include "cust_cpu_utils.h"
+#include "sparse_mat_mul_sve_kernels.h"
+#include <type_traits>
+#ifdef __ARM_FEATURE_SVE
+#include <arm_sve.h>
+#endif
+
 namespace  {
-const char *SPARSE_MAT_MUL_BASE_A = "SparseMatMulBaseA";
+const char *SPARSE_MAT_MUL_SVE = "SparseMatMulSVE";
 const uint32_t kFirstInputIndex = 0;
 const uint32_t kSecondInputIndex = 1;
 const uint32_t kFirstOutputIndex = 0;
@@ -19,8 +20,9 @@ const uint32_t ERROR = 2;
 }
 
 namespace aicpu  {
-uint32_t SparseMatMulBaseACpuKernel::Compute(CpuKernelContext &ctx)
+uint32_t SparseMatMulSVECpuKernel::Compute(CpuKernelContext &ctx)
 {
+
     Tensor* input0 = ctx.Input(kFirstInputIndex);
     Tensor* input1 = ctx.Input(kSecondInputIndex);
     
@@ -54,9 +56,9 @@ uint32_t SparseMatMulBaseACpuKernel::Compute(CpuKernelContext &ctx)
 
     switch (inputType0) {
         case DT_FLOAT16:
-            return SparseMatMulComputeA<Eigen::half>(ctx);
+            return SparseMatMulCompute<Eigen::half>(ctx);
         case DT_FLOAT:
-            return SparseMatMulComputeA<float>(ctx);
+            return SparseMatMulCompute<float>(ctx);
             default:
             return PARAM_INVAILD;
     }
@@ -70,8 +72,10 @@ uint32_t SparseMatMulBaseACpuKernel::Compute(CpuKernelContext &ctx)
     return SUCCESS;
 }
 
+
+
 template<typename T>
-uint32_t SparseMatMulBaseACpuKernel::SparseMatMulComputeA(CpuKernelContext &ctx)
+uint32_t SparseMatMulSVECpuKernel::SparseMatMulCompute(CpuKernelContext &ctx)
 {
   //Get blockid and blockdim
   uint32_t blockX_id;
@@ -115,12 +119,12 @@ uint32_t SparseMatMulBaseACpuKernel::SparseMatMulComputeA(CpuKernelContext &ctx)
     block_size = block_size_ptr->GetInt();
   }
 
-  return SparseMatMulComputeWithBlockBaseA<T>(ctx, blockX_id, blockX_dim, blockY_id, blockY_dim,block_size);
+  return SparseMatMulComputeWithBlock<T>(ctx, blockX_id, blockX_dim, blockY_id, blockY_dim,block_size);
 }
 
-
+// Optimized version with ARM SVE
 template<typename T>
-uint32_t SparseMatMulBaseACpuKernel::SparseMatMulComputeWithBlockBaseA(CpuKernelContext &ctx,
+uint32_t SparseMatMulSVECpuKernel::SparseMatMulComputeWithBlock(CpuKernelContext &ctx,
                                                 uint32_t blockX_id, uint32_t blockX_dim,
 												uint32_t blockY_id, uint32_t blockY_dim,
 												uint32_t block_size)
@@ -148,31 +152,92 @@ uint32_t SparseMatMulBaseACpuKernel::SparseMatMulComputeWithBlockBaseA(CpuKernel
 	uint32_t M = inputShape0->GetDimSize(0);
 	uint32_t K = inputShape0->GetDimSize(1);
 	uint32_t N = inputShape1->GetDimSize(1);
+  if(block_size==0){
+    block_size = M;
+  }
 	uint32_t block_elem = block_size*block_size;
-  uint32_t A_block_row_start = blockX_id * block_size;
-  uint32_t A_block_col_start = blockY_id * block_size;
 
-  uint32_t A_block_row_end = (A_block_row_start + block_size < M) ? A_block_row_start + block_size : M;
-  uint32_t A_block_col_end = (A_block_col_start + block_size < K) ? A_block_col_start + block_size : K;
+  T* A_base_ptr = A + blockX_id*blockY_dim*block_elem;
+  T* B_base_ptr = B + blockY_id*block_size;
+  T* C_base_ptr = C + blockX_id*blockY_dim*block_elem + blockY_id*block_size;
 
-  uint32_t actual_block_rows = A_block_row_end - A_block_row_start;
-  uint32_t actual_block_cols = A_block_col_end - A_block_col_start;
+#ifdef __ARM_FEATURE_SVE
+  // ARM SVE optimized version for float type
+  if (std::is_same<T, float>::value) {
+    float *A_f = reinterpret_cast<float*>(A_base_ptr);
+    float *B_f = reinterpret_cast<float*>(B_base_ptr);
+    float *C_f = reinterpret_cast<float*>(C_base_ptr);
 
-  T* A_base_ptr = A + A_block_row_start * K + A_block_col_start;
+    // Process K dimension in vector chunks using SVE for better performance
+    for(uint32_t i=0; i<block_size; ++i) {
+      for(uint32_t j=0; j<block_size; ++j) {
+        float sum = 0.0f;
+        uint32_t k = 0;
 
+        // Process K dimension in vector chunks using SVE
+        while(k < K) {
+          uint32_t vl = svcntw(); // Get the vector length
+          uint32_t remaining = K - k;
+          uint32_t current_vl = (remaining < vl) ? remaining : vl;
 
-  for(uint32_t i = 0; i < actual_block_rows; ++i) {
-    for(uint32_t n = 0; n < N; ++n) {
-      T sum = static_cast<T>(0.0);
-      for(uint32_t j = 0; j < actual_block_cols; ++j) {
-        sum += A_base_ptr[i * K + j] * B[(A_block_col_start + j) * N + n];
+          svbool_t pg = svwhilelt_b32(0, current_vl);
+
+          // Load elements from A[i,k:k+vl] and B[k:k+vl,j] for computation
+          svfloat32_t va = svld1_f32(pg, &A_f[i*K + k]);
+          // Load B values for the same k range but fixed j column
+          svfloat32_t vb = svld1_f32(pg, &B_f[k*N + j]);
+
+          // Multiply and accumulate
+          svfloat32_t vmul = svmul_f32(pg, va, vb);
+          sum += svaddv_f32(pg, vmul);
+
+          k += current_vl;
+        }
+
+        C_f[i*N + j] = sum;
       }
-      C[(A_block_row_start + i) * N + n] += sum;
+    }
+  } else if (std::is_same<T, Eigen::half>::value) {
+    // For half precision, we need to convert to float for computation if SVE doesn't support half
+    Eigen::half *A_h = reinterpret_cast<Eigen::half*>(A_base_ptr);
+    Eigen::half *B_h = reinterpret_cast<Eigen::half*>(B_base_ptr);
+    Eigen::half *C_h = reinterpret_cast<Eigen::half*>(C_base_ptr);
+
+    for(uint32_t i=0; i<block_size; ++i) {
+      for(uint32_t j=0; j<block_size; ++j) {
+        float sum = 0.0f;
+        for(uint32_t k=0; k<K; ++k) {
+          sum += static_cast<float>(A_h[i*K+k]) * static_cast<float>(B_h[k*N+j]);
+        }
+        C_h[i*N+j] = static_cast<Eigen::half>(sum);
+      }
+    }
+  } else {
+    // For other types or fallback implementation
+    for(uint32_t i=0;i<block_size;++i) {
+      for(uint32_t j=0;j<block_size;++j) {
+        T sum = (T)0.0f;
+        for(uint32_t k=0;k<K;++k) {
+          sum += A_base_ptr[i*K+k] * B_base_ptr[k*N+j];
+        }
+        C_base_ptr[i*N+j] = sum;
+      }
     }
   }
+#else
+  // Naive version without SVE
+  for(uint32_t i=0;i<block_size;++i) {
+    for(uint32_t j=0;j<block_size;++j) {
+      T sum = (T)0.0f;
+      for(uint32_t k=0;k<K;++k) {
+        sum += A_base_ptr[i*K+k] * B_base_ptr[k*N+j];
+      }
+      C_base_ptr[i*N+j] = sum;
+    }
+  }
+#endif
   return SUCCESS;
 }
 
-
-REGISTER_CPU_KERNEL(SPARSE_MAT_MUL_BASE_A, SparseMatMulBaseACpuKernel);
+REGISTER_CPU_KERNEL(SPARSE_MAT_MUL_SVE, SparseMatMulSVECpuKernel);
 } // namespace aicpu

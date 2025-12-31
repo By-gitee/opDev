@@ -1,0 +1,11 @@
+REGISTER_OP("SparseMatMulSVE")
+    .Input("sparse_matrix: T")
+    .Input("weight: T")
+    .Output("output: T")
+    .Attr(
+        "T: { half, float}")
+    .Attr("blockX_id: int = 0")
+    .Attr("blockY_id: int = 0")
+    .Attr("blockX_dim: int = 1")
+    .Attr("blockY_dim: int = 1")
+    .Attr("block_size: int = 64")
