@@ -19,6 +19,7 @@
 #include "acl/acl.h"
 #include "common.h"
 #include "operator_desc.h"
+#include <chrono>
 
 /**
  * Op Runner
@@ -148,6 +149,12 @@ public:
      */
     bool RunOp();
 
+    /**
+     * @brief Get execution time of the operator
+     * @return execution time in milliseconds
+     */
+    double GetExecutionTime();
+
 private:
     size_t numInputs_;
     size_t numOutputs_;
@@ -162,6 +169,10 @@ private:
     std::vector<void *> hostOutputs_;
     OperatorDesc *opDesc_;
     bool isDevice_;
+
+    // Timing members
+    std::chrono::steady_clock::time_point execStart_;
+    std::chrono::steady_clock::time_point execEnd_;
 };
 
 #endif // OP_RUNNER_H

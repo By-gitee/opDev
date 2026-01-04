@@ -1,0 +1,7 @@
+REGISTER_OP("SparseMatMulGather")
+    .Input("indices:int32")
+    .Input("sparse_matrix: T")
+    .Input("weight: T")
+    .Output("output: T")
+    .Attr(
+        "T: {half, float}")

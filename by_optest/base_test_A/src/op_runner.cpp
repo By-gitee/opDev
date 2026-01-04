@@ -230,6 +230,9 @@ bool OpRunner::RunOp()
     }
     INFO_LOG("Create stream success");
 
+    // Start timing before operator execution
+    execStart_ = std::chrono::steady_clock::now();
+
     auto ret = aclopExecuteV2(opDesc_->opType.c_str(),
                               numInputs_,
                               opDesc_->inputDesc.data(),
@@ -239,6 +242,10 @@ bool OpRunner::RunOp()
                               outputBuffers_.data(),
                               opDesc_->opAttr,
                               stream);
+
+    // End timing after operator execution
+    execEnd_ = std::chrono::steady_clock::now();
+
     if (ret == ACL_ERROR_OP_TYPE_NOT_MATCH || ret == ACL_ERROR_OP_INPUT_NOT_MATCH ||
         ret == ACL_ERROR_OP_OUTPUT_NOT_MATCH || ret == ACL_ERROR_OP_ATTR_NOT_MATCH) {
         ERROR_LOG("[%s] op with the given description is not compiled. Please run atc first", opDesc_->opType.c_str());
@@ -340,4 +347,10 @@ void OpRunner::PrintOutput(size_t index, size_t numElementsPerRow)
 
     auto desc = opDesc_->outputDesc[index];
     PrintData(hostOutputs_[index], GetOutputElementCount(index), aclGetTensorDescType(desc), numElementsPerRow);
+}
+
+double OpRunner::GetExecutionTime()
+{
+    std::chrono::duration<double, std::milli> diff = execEnd_ - execStart_;
+    return diff.count();
 }

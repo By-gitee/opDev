@@ -3,6 +3,8 @@
  * Copyright (c) Huawei Technologies Co., Ltd. 2020-2021. All rights reserved.
  * Description: implement of SparseMatMulSVE
  */
+#define __ARM_FEATURE_SVE
+
 #include "sparse_mat_mul_sve_kernels.h"
 #include <type_traits>
 #ifdef __ARM_FEATURE_SVE
@@ -198,7 +200,7 @@ uint32_t SparseMatMulSVECpuKernel::SparseMatMulComputeWithBlock(CpuKernelContext
       }
     }
   } else if (std::is_same<T, Eigen::half>::value) {
-    // For half precision, we need to convert to float for computation if SVE doesn't support half
+    // For half precision, use SVE optimization
     Eigen::half *A_h = reinterpret_cast<Eigen::half*>(A_base_ptr);
     Eigen::half *B_h = reinterpret_cast<Eigen::half*>(B_base_ptr);
     Eigen::half *C_h = reinterpret_cast<Eigen::half*>(C_base_ptr);
@@ -206,9 +208,28 @@ uint32_t SparseMatMulSVECpuKernel::SparseMatMulComputeWithBlock(CpuKernelContext
     for(uint32_t i=0; i<block_size; ++i) {
       for(uint32_t j=0; j<block_size; ++j) {
         float sum = 0.0f;
-        for(uint32_t k=0; k<K; ++k) {
-          sum += static_cast<float>(A_h[i*K+k]) * static_cast<float>(B_h[k*N+j]);
+        uint32_t k = 0;
+
+        // Process K dimension in vector chunks using SVE for float16
+        while(k < K) {
+          uint32_t vl = svcnth(); // Get the vector length for float16
+          uint32_t remaining = K - k;
+          uint32_t current_vl = (remaining < vl) ? remaining : vl;
+
+          svbool_t pg = svwhilelt_b16(0, current_vl);
+
+          // Load elements from A[i,k:k+vl] and B[k:k+vl,j] for computation
+          svfloat16_t va = svld1_f16(pg, reinterpret_cast<const svfloat16_t*>(&A_h[i*K + k]));
+          // Load B values for the same k range but fixed j column
+          svfloat16_t vb = svld1_f16(pg, reinterpret_cast<const svfloat16_t*>(&B_h[k*N + j]));
+
+          // Multiply and accumulate
+          svfloat16_t vmul = svmul_f16(pg, va, vb);
+          sum += svaddv_f16(pg, vmul); // Use the same predicate as used for loading
+
+          k += current_vl;
         }
+
         C_h[i*N+j] = static_cast<Eigen::half>(sum);
       }
     }

@@ -60,9 +60,9 @@ bool SetInputData(OpRunner &runner)
         }
         INFO_LOG("file Size is:%zu.", fileSize);
         INFO_LOG("Set input[%zu] from %s success.?", i, filePath.c_str());
-        INFO_LOG("Input[%zu]:", i);
-        runner.PrintInput(i);
-        std::cout << std::endl;
+        // INFO_LOG("Input[%zu]:", i);
+        // runner.PrintInput(i);
+        // std::cout << std::endl;
         std::vector<int64_t> inputShape = runner.GetInputShape(i);
         std::string shapeString;
         for (size_t j = 0; j < inputShape.size(); j++) {
@@ -78,9 +78,9 @@ bool SetInputData(OpRunner &runner)
 bool ProcessOutputData(OpRunner &runner)
 {
     for (size_t i = 0; i < runner.NumOutputs(); ++i) {
-        INFO_LOG("Output[%zu]:", i);
-        runner.PrintOutput(i);
-        std::cout << std::endl;
+        // INFO_LOG("Output[%zu]:", i);
+        // runner.PrintOutput(i);
+        // std::cout << std::endl;
         std::string shapeString;
         std::vector<int64_t> outputShape = runner.GetOutputShape(i);
         for (size_t j = 0; j < outputShape.size(); j++) {
@@ -100,7 +100,7 @@ bool ProcessOutputData(OpRunner &runner)
     return true;
 }
 
-bool RunAddOp(bool isDevice)
+bool RunSparseMatMulBaseAOp(bool isDevice)
 {
     // Create op desc
     OperatorDesc opDesc = CreateOpDesc();
@@ -128,6 +128,7 @@ bool RunAddOp(bool isDevice)
     }
 
     INFO_LOG("Run op success");
+    INFO_LOG("Operator execution time: %.3f ms", opRunner.GetExecutionTime());
     return true;
 }
 
@@ -177,7 +178,7 @@ int main()
     }
     bool isDevice = (runMode == ACL_DEVICE);
 
-    if (!RunAddOp(isDevice)) {
+    if (!RunSparseMatMulBaseAOp(isDevice)) {
         (void) aclrtResetDevice(deviceId);
         (void) aclFinalize();
         return FAILED;
