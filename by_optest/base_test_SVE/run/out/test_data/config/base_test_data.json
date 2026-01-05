@@ -1,0 +1,51 @@
+[
+  {
+    "op": "SparseMatMulTBaseSVE",
+    "input_desc":  [
+      {
+        "format": "ND",
+        "shape": [64, 64],
+        "type": "float32"
+      },
+      {
+        "format": "ND",
+        "shape": [64, 64],
+        "type": "float32"
+      }
+    ],
+    "output_desc": [
+      {
+        "format": "ND",
+        "shape": [64, 64],
+        "type": "float32"
+      }
+    ],
+    "attr": [
+      {
+        "name": "blockX_id",
+        "type": "int",
+        "value": 0
+      },
+      {
+        "name": "blockY_id",
+        "type": "int",
+        "value": 0
+      },
+      {
+        "name": "blockX_dim",
+        "type": "int",
+        "value": 1
+      },
+      {
+        "name": "blockY_dim",
+        "type": "int",
+        "value": 1
+      },
+      {
+        "name": "block_size",
+        "type": "int",
+        "value": 64
+      }
+    ]
+  }
+]

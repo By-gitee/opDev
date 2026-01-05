@@ -21,7 +21,7 @@
 #include "graph/operator_reg.h"
 namespace ge {
 
-REG_OP(SparseMatMulBaseB)
+REG_OP(SparseMatMulTBaseB)
     .INPUT(sparse_matrix, TensorType({DT_FLOAT16,DT_FLOAT}))
     .INPUT(weight, TensorType({DT_FLOAT16,DT_FLOAT}))
     .OUTPUT(output, TensorType({DT_FLOAT16,DT_FLOAT}))
@@ -30,6 +30,6 @@ REG_OP(SparseMatMulBaseB)
     .ATTR(block_x_dim, Int, 1)
     .ATTR(block_y_dim, Int, 1)
     .ATTR(block_size, Int, 64)
-    .OP_END_FACTORY_REG(SparseMatMulBaseB)
+    .OP_END_FACTORY_REG(SparseMatMulTBaseB)
 }
 #endif //GE_OP_SPARSE_MAT_MUL_BASE_B_H

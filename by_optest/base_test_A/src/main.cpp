@@ -30,7 +30,7 @@ OperatorDesc CreateOpDesc()
     std::vector<int64_t> inputShape0{64,64};
     std::vector<int64_t> inputShape1{64,64};
     std::vector<int64_t> outputShape{64,64};
-    std::string opType = "SparseMatMulBaseA";
+    std::string opType = "SparseMatMulTBaseA";
     aclDataType dataType = ACL_FLOAT;
     aclFormat format = ACL_FORMAT_ND;
     OperatorDesc opDesc(opType);
@@ -100,7 +100,7 @@ bool ProcessOutputData(OpRunner &runner)
     return true;
 }
 
-bool RunSparseMatMulBaseAOp(bool isDevice)
+bool RunSparseMatMulTBaseAOp(bool isDevice)
 {
     // Create op desc
     OperatorDesc opDesc = CreateOpDesc();
@@ -178,7 +178,7 @@ int main()
     }
     bool isDevice = (runMode == ACL_DEVICE);
 
-    if (!RunSparseMatMulBaseAOp(isDevice)) {
+    if (!RunSparseMatMulTBaseAOp(isDevice)) {
         (void) aclrtResetDevice(deviceId);
         (void) aclFinalize();
         return FAILED;

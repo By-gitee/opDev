@@ -1,6 +1,6 @@
 [
   {
-    "op": "SparseMatMulBaseA",
+    "op": "SparseMatMulTBaseA",
     "input_desc":  [
       {
         "format": "ND",

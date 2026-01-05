@@ -1,6 +1,6 @@
 /*
  * Copyright (c) Huawei Technologies Co., Ltd. 2020-2021. All rights reserved.
- * Description: implement of SparseMatMulBaseA
+ * Description: implement of SparseMatMulTBaseA
  */
 #include "sparse_mat_mul_base_a_kernels.h"
 #include<iostream>
@@ -9,7 +9,7 @@
 #include "cpu_types.h"
 #include "cust_cpu_utils.h"
 namespace  {
-const char *SPARSE_MAT_MUL_BASE_A = "SparseMatMulBaseA";
+const char *SPARSE_MAT_MUL_BASE_A = "SparseMatMulTBaseA";
 const uint32_t kFirstInputIndex = 0;
 const uint32_t kSecondInputIndex = 1;
 const uint32_t kFirstOutputIndex = 0;
@@ -19,7 +19,7 @@ const uint32_t ERROR = 2;
 }
 
 namespace aicpu  {
-uint32_t SparseMatMulBaseACpuKernel::Compute(CpuKernelContext &ctx)
+uint32_t SparseMatMulTBaseACpuKernel::Compute(CpuKernelContext &ctx)
 {
     Tensor* input0 = ctx.Input(kFirstInputIndex);
     Tensor* input1 = ctx.Input(kSecondInputIndex);
@@ -38,7 +38,7 @@ uint32_t SparseMatMulBaseACpuKernel::Compute(CpuKernelContext &ctx)
     for (int32_t i = 0; i < inputShape1->GetDims(); ++i) {
         CUST_KERNEL_LOG_DEBUG(ctx, "Weight dim[%d] size:%ld.", i, inputShape1->GetDimSize(i));
     }
-	if(inputShape0->GetDimSize(1) != inputShape1->GetDimSize(0)) {
+	if(inputShape0->GetDimSize(1) != inputShape1->GetDimSize(1)) { // B is transposed, so we compare with the second dimension
         CUST_KERNEL_LOG_DEBUG(ctx, "DataShape does not match.");
         return PARAM_INVAILD;
 	}
@@ -71,7 +71,7 @@ uint32_t SparseMatMulBaseACpuKernel::Compute(CpuKernelContext &ctx)
 }
 
 template<typename T>
-uint32_t SparseMatMulBaseACpuKernel::SparseMatMulComputeA(CpuKernelContext &ctx)
+uint32_t SparseMatMulTBaseACpuKernel::SparseMatMulComputeA(CpuKernelContext &ctx)
 {
   //Get blockid and blockdim
   uint32_t blockX_id;
@@ -120,7 +120,7 @@ uint32_t SparseMatMulBaseACpuKernel::SparseMatMulComputeA(CpuKernelContext &ctx)
 
 
 template<typename T>
-uint32_t SparseMatMulBaseACpuKernel::SparseMatMulComputeWithBlockBaseA(CpuKernelContext &ctx,
+uint32_t SparseMatMulTBaseACpuKernel::SparseMatMulComputeWithBlockBaseA(CpuKernelContext &ctx,
                                                 uint32_t blockX_id, uint32_t blockX_dim,
 												uint32_t blockY_id, uint32_t blockY_dim,
 												uint32_t block_size)
@@ -147,8 +147,7 @@ uint32_t SparseMatMulBaseACpuKernel::SparseMatMulComputeWithBlockBaseA(CpuKernel
 
 	uint32_t M = inputShape0->GetDimSize(0);
 	uint32_t K = inputShape0->GetDimSize(1);
-	uint32_t N = inputShape1->GetDimSize(1);
-	uint32_t block_elem = block_size*block_size;
+	uint32_t N = inputShape1->GetDimSize(0); // B is transposed, so N dimension is now the first dimension
   uint32_t A_block_row_start = blockX_id * block_size;
   uint32_t A_block_col_start = blockY_id * block_size;
 
@@ -165,7 +164,7 @@ uint32_t SparseMatMulBaseACpuKernel::SparseMatMulComputeWithBlockBaseA(CpuKernel
     for(uint32_t n = 0; n < N; ++n) {
       T sum = static_cast<T>(0.0);
       for(uint32_t j = 0; j < actual_block_cols; ++j) {
-        sum += A_base_ptr[i * K + j] * B[(A_block_col_start + j) * N + n];
+        sum += A_base_ptr[i * K + j] * B[n * K + (A_block_col_start + j)]; // B is transposed, so access B[n][j] instead of B[j][n]
       }
       C[(A_block_row_start + i) * N + n] += sum;
     }
@@ -174,5 +173,5 @@ uint32_t SparseMatMulBaseACpuKernel::SparseMatMulComputeWithBlockBaseA(CpuKernel
 }
 
 
-REGISTER_CPU_KERNEL(SPARSE_MAT_MUL_BASE_A, SparseMatMulBaseACpuKernel);
+REGISTER_CPU_KERNEL(SPARSE_MAT_MUL_BASE_A, SparseMatMulTBaseACpuKernel);
 } // namespace aicpu

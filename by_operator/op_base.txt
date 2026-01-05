@@ -1,4 +1,4 @@
-REGISTER_OP("SparseMatMulBase")
+REGISTER_OP("SparseMatMulTBase")
     .Input("sparse_matrix: T")
     .Input("weight: T")
     .Output("output: T")

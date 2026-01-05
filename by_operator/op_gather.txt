@@ -1,5 +1,6 @@
 REGISTER_OP("SparseMatMulGather")
-    .Input("indices:int32")
+    .Input("indicesX:int32")
+    .Input("indicesY:int32")
     .Input("sparse_matrix: T")
     .Input("weight: T")
     .Output("output: T")

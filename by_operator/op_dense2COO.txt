@@ -1,0 +1,7 @@
+REGISTER_OP("DenseToCOO")
+    .Input("dense_matrix: T")
+    .Input("threshold: T")
+    .Output("indicesX:int32")
+    .Output("indicesY:int32")
+    .Attr(
+        "T: {half, float}")

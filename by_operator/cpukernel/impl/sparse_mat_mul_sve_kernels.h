@@ -1,18 +1,19 @@
 
 /*
  * Copyright (c) Huawei Technologies Co., Ltd. 2020-2021. All rights reserved.
- * Description: api of SparseMatMulSVE
+ * Description: api of SparseMatMulTBaseSVE
  */
 
 #ifndef _SPARSE_MAT_MUL_SVE_KERNELS_H_
 #define _SPARSE_MAT_MUL_SVE_KERNELS_H_
 
 #include "cpu_kernel.h"
+#include "eigen3/Eigen/Dense"
 
 namespace aicpu {
-class SparseMatMulSVECpuKernel : public CpuKernel {
+class SparseMatMulTBaseSVECpuKernel : public CpuKernel {
 public:
-    ~SparseMatMulSVECpuKernel() = default;
+    ~SparseMatMulTBaseSVECpuKernel() = default;
     virtual uint32_t Compute(CpuKernelContext &ctx) override;
     template<typename T>
     uint32_t SparseMatMulCompute(CpuKernelContext &ctx);

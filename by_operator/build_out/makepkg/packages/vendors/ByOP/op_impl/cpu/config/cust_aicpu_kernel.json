@@ -1,5 +1,5 @@
 {
-    "SparseMatMulBase":{
+    "SparseMatMulTBase":{
         "opInfo":{
             "blockDimByIndex":"-1",
             "computeCost":"100",

@@ -34,7 +34,7 @@ def data_contrast_with_matrix_mult(file1, file2, result_output, tolerance=1e-5):
         return 1
 
     # Perform matrix multiplication
-    right_output = np.dot(matrix1, matrix2)
+    right_output = np.dot(matrix1, matrix2.T)
     
     # Read expected output
     result = np.fromfile(result_output, dtype=np.float32)

@@ -1,6 +1,6 @@
 #include "sparse_mat_mul_base.h"
 namespace ge {
-bool InferShapeAndTypeSparseMatMulBase(Operator& op, const string& input_name1, const string& input_name2, const string& output_name) {
+bool InferShapeAndTypeSparseMatMulTBase(Operator& op, const string& input_name1, const string& input_name2, const string& output_name) {
 
  TensorDesc vOutputDesc = op.GetOutputDescByName(output_name.c_str());
 
@@ -26,17 +26,17 @@ bool InferShapeAndTypeSparseMatMulBase(Operator& op, const string& input_name1, 
   const size_t Input1Rank = Input1Dims.size();
   const size_t Input2Rank = Input2Dims.size();
 
-  // 3) Get matrix dims：Input1[..., M, K], Input2[..., K, N]
+  // 3) Get matrix dims：Input1[..., M, K], Input2[..., N, K] (already transposed)
   int64_t Input1M = Input1Dims[Input1Rank - 2];
-  int64_t Input1K = Input1Dims[Input1Rank - 1];
-  int64_t Input2K = Input2Dims[Input2Rank - 2];
-  int64_t Input2N = Input2Dims[Input2Rank - 1];
+  // int64_t Input1K = Input1Dims[Input1Rank - 1];
+  int64_t Input2N = Input2Dims[Input2Rank - 2];  // Input2 is already transposed, so N is at index -2
+  // int64_t Input2K = Input2Dims[Input2Rank - 1];  // Input2 is already transposed, so K is at index -1
 
-  // 4) Check K dim compatibility
-  auto is_known = [](int64_t d) { return d >= 0; }; // 0 is treated as known here(empty dim)
-  if (is_known(Input1K) && is_known(Input2K) && Input1K != Input2K) {
-    return false;
-  }
+  // 4) Check K dim compatibility (K dimension should match between Input1[..., M, K] and Input2[..., N, K])
+  // auto is_known = [](int64_t d) { return d >= 0; }; // 0 is treated as known here(empty dim)
+  // if (is_known(Input1K) && is_known(Input2K) && Input1K != Input2K) {
+    // return false;
+  // }
 
   // 5) Handle batch dimension broadcasting
   // batchInput1 = Input1Dims[0 : Input1Rank-2]
@@ -88,7 +88,7 @@ bool InferShapeAndTypeSparseMatMulBase(Operator& op, const string& input_name1, 
     bout.push_back(out_d);
   }
 
-  // 6) Compose output shape: batch_dims + [M, N]
+  // 6) Compose output shape: batch_dims + [M, N] (result of multiplying Input1[..., M, K] with Input2[..., N, K] where Input2 is already transposed)
   std::vector<int64_t> OutDims = bout;
   OutDims.push_back(Input1M);
   OutDims.push_back(Input2N);
@@ -102,15 +102,15 @@ bool InferShapeAndTypeSparseMatMulBase(Operator& op, const string& input_name1, 
 
   return true;
 }
-IMPLEMT_COMMON_INFERFUNC(SparseMatMulBaseInferShape)
+IMPLEMT_COMMON_INFERFUNC(SparseMatMulTBaseInferShape)
 {
-    if(InferShapeAndTypeSparseMatMulBase(op, "sparse_matrix", "weight", "output")) {
+    if(InferShapeAndTypeSparseMatMulTBase(op, "sparse_matrix", "weight", "output")) {
         return GRAPH_SUCCESS;
     }
     return GRAPH_FAILED;
 }
 
-IMPLEMT_VERIFIER(SparseMatMulBase, SparseMatMulBaseVerify)
+IMPLEMT_VERIFIER(SparseMatMulTBase, SparseMatMulTBaseVerify)
 {  
   DataType Input1Type = op.GetInputDescByName("sparse_matrix").GetDataType();
   DataType Input2Type = op.GetInputDescByName("weight").GetDataType();
@@ -120,7 +120,7 @@ IMPLEMT_VERIFIER(SparseMatMulBase, SparseMatMulBaseVerify)
     return GRAPH_SUCCESS;
 }
 
-COMMON_INFER_FUNC_REG(SparseMatMulBase, SparseMatMulBaseInferShape);
-VERIFY_FUNC_REG(SparseMatMulBase, SparseMatMulBaseVerify);
+COMMON_INFER_FUNC_REG(SparseMatMulTBase, SparseMatMulTBaseInferShape);
+VERIFY_FUNC_REG(SparseMatMulTBase, SparseMatMulTBaseVerify);
 
 }  // namespace ge

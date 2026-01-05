@@ -1,7 +1,7 @@
 
 /*
  * Copyright (c) Huawei Technologies Co., Ltd. 2020-2021. All rights reserved.
- * Description: implement of SparseMatMulBaseB
+ * Description: implement of SparseMatMulTBaseB
  */
 #include "sparse_mat_mul_base_b_kernels.h"
 #include<iostream>
@@ -11,7 +11,7 @@
 #include "cust_cpu_utils.h"
 
 namespace  {
-const char *SPARSE_MAT_MUL_BASE_B = "SparseMatMulBaseB";
+const char *SPARSE_MAT_MUL_BASE_B = "SparseMatMulTBaseB";
 const uint32_t kFirstInputIndex = 0;
 const uint32_t kSecondInputIndex = 1;
 const uint32_t kFirstOutputIndex = 0;
@@ -21,7 +21,7 @@ const uint32_t ERROR = 2;
 }
 
 namespace aicpu  {
-uint32_t SparseMatMulBaseBCpuKernel::Compute(CpuKernelContext &ctx)
+uint32_t SparseMatMulTBaseBCpuKernel::Compute(CpuKernelContext &ctx)
 {
     Tensor* input0 = ctx.Input(kFirstInputIndex);
     Tensor* input1 = ctx.Input(kSecondInputIndex);
@@ -40,7 +40,7 @@ uint32_t SparseMatMulBaseBCpuKernel::Compute(CpuKernelContext &ctx)
     for (int32_t i = 0; i < inputShape1->GetDims(); ++i) {
         CUST_KERNEL_LOG_DEBUG(ctx, "Weight dim[%d] size:%ld.", i, inputShape1->GetDimSize(i));
     }
-	if(inputShape0->GetDimSize(1) != inputShape1->GetDimSize(0)) {
+	if(inputShape0->GetDimSize(1) != inputShape1->GetDimSize(1)) {
         CUST_KERNEL_LOG_DEBUG(ctx, "DataShape does not match.");
         return PARAM_INVALID;
 	}
@@ -73,7 +73,7 @@ uint32_t SparseMatMulBaseBCpuKernel::Compute(CpuKernelContext &ctx)
 }
 
 template<typename T>
-uint32_t SparseMatMulBaseBCpuKernel::SparseMatMulComputeB(CpuKernelContext &ctx)
+uint32_t SparseMatMulTBaseBCpuKernel::SparseMatMulComputeB(CpuKernelContext &ctx)
 {
   //Get blockid and blockdim
   uint32_t blockX_id;
@@ -121,66 +121,62 @@ uint32_t SparseMatMulBaseBCpuKernel::SparseMatMulComputeB(CpuKernelContext &ctx)
 }
 
 template<typename T>
-uint32_t SparseMatMulBaseBCpuKernel::SparseMatMulComputeWithBlockBaseB(CpuKernelContext &ctx,
+uint32_t SparseMatMulTBaseBCpuKernel::SparseMatMulComputeWithBlockBaseB(CpuKernelContext &ctx,
                                                 uint32_t blockX_id, uint32_t blockX_dim,
 												uint32_t blockY_id, uint32_t blockY_dim,
 												uint32_t block_size)
 {
-  Tensor *input0 = ctx.Input(kFirstInputIndex);
+   Tensor *input0 = ctx.Input(kFirstInputIndex);
   Tensor *input1 = ctx.Input(kSecondInputIndex);
   Tensor *output = ctx.Output(kFirstOutputIndex);
 
   T *A = reinterpret_cast<T *>(input0->GetData());
-  if (A == nullptr) {
-    return PARAM_INVALID;
-  }
-  T *B = reinterpret_cast<T *>(input1->GetData());
-  if (B == nullptr) {
-    return PARAM_INVALID;
-  }
-  T *C = reinterpret_cast<T *>(output->GetData());
-  if (C == nullptr) {
-    return PARAM_INVALID;
-  }
-    auto inputShape0 = input0->GetTensorShape();
-    auto inputShape1 = input1->GetTensorShape();
+  if (A == nullptr) return PARAM_INVALID;
 
-	uint32_t M = inputShape0->GetDimSize(0);
-	uint32_t K = inputShape0->GetDimSize(1);
-	uint32_t N = inputShape1->GetDimSize(1);
-	uint32_t block_elem = block_size*block_size;
-  uint32_t B_block_row_start = blockX_id * block_size;
+  T *B = reinterpret_cast<T *>(input1->GetData());
+  if (B == nullptr) return PARAM_INVALID;
+
+  T *C = reinterpret_cast<T *>(output->GetData());
+  if (C == nullptr) return PARAM_INVALID;
+
+  auto inputShape0 = input0->GetTensorShape();
+  auto inputShape1 = input1->GetTensorShape();
+
+  uint32_t M = inputShape0->GetDimSize(0);
+  uint32_t K = inputShape0->GetDimSize(1);
+
+  uint32_t N = inputShape1->GetDimSize(0);
+
+  uint32_t B_block_row_start = blockX_id * block_size; 
   uint32_t B_block_col_start = blockY_id * block_size;
 
-  uint32_t B_block_row_end = (B_block_row_start + block_size < K) ? B_block_row_start + block_size : K;
-  uint32_t B_block_col_end = (B_block_col_start + block_size < N) ? B_block_col_start + block_size : N;
+  uint32_t B_block_row_end = (B_block_row_start + block_size < K) ? (B_block_row_start + block_size) : K;
+  uint32_t B_block_col_end = (B_block_col_start + block_size < N) ? (B_block_col_start + block_size) : N;
 
   uint32_t actual_block_rows = B_block_row_end - B_block_row_start;
   uint32_t actual_block_cols = B_block_col_end - B_block_col_start;
 
-  T* B_base_ptr = B + B_block_row_start * N + B_block_col_start;
 
+  for (uint32_t j = 0; j < actual_block_cols; ++j) {
+    uint32_t out_col = B_block_col_start + j; 
+    const T* B_T_row_ptr = B + out_col * K;  
 
-  for(uint32_t j=0;j<actual_block_cols;++j) {
-    for(uint32_t m=0;m<M;++m) {
-        T sum = static_cast<T>(0.0);
-        for(uint32_t i=0;i<actual_block_rows;++i) {
-          sum += A[m*K+(B_block_row_start+i)] * B_base_ptr[i*N+j];
-        }
-		    C[m*N+(B_block_col_start+j)] += sum;
+    for (uint32_t m = 0; m < M; ++m) {
+      T sum = static_cast<T>(0);
+
+      const T* A_row_ptr = A + m * K;          // A[m, :]
+      for (uint32_t i = 0; i < actual_block_rows; ++i) {
+        uint32_t k_idx = B_block_row_start + i;
+        // B_orig[k_idx, out_col] == B_T[out_col, k_idx]
+        sum += A_row_ptr[k_idx] * B_T_row_ptr[k_idx];
+      }
+
+      C[m * N + out_col] += sum;
     }
   }
-  // for(uint32_t j=0;j<actual_block_cols;++j) {
-  //   for(uint32_t m=0;m<M;++m) {
-  //       T sum = static_cast<T>(0.0);
-  //       for(uint32_t i=0;i<actual_block_rows;++i) {
-  //         sum += A_base_ptr[m*K+i] * B_base_ptr[i*N+j];
-  //       }
-	// 	C_base_ptr[m*N+(B_block_col_start+j)] += sum;
-  //   }
-  // }
+
   return SUCCESS;
 }
 
-REGISTER_CPU_KERNEL(SPARSE_MAT_MUL_BASE_B, SparseMatMulBaseBCpuKernel);
+REGISTER_CPU_KERNEL(SPARSE_MAT_MUL_BASE_B, SparseMatMulTBaseBCpuKernel);
 } // namespace aicpu
