@@ -69,71 +69,58 @@ uint32_t DenseToCOOCpuKernel::DenseToCOOCompute(CpuKernelContext &ctx)
     // Get threshold value
     Tensor* threshold_tensor = ctx.Input(kThresholdInputIndex);
     T* threshold_data = reinterpret_cast<T*>(threshold_tensor->GetData());
-    if (threshold_data == nullptr) {
-        CUST_KERNEL_LOG_ERROR(ctx, "Failed to get threshold data.");
-        return PARAM_INVAILD;
-    }
     T threshold = threshold_data[0];  // Assuming threshold is a scalar
 
     // Get input tensor
     Tensor* dense_matrix = ctx.Input(kDenseMatrixInputIndex);
     auto input_shape = dense_matrix->GetTensorShape();
 
-    if (input_shape->GetDims() != 2) {
-        CUST_KERNEL_LOG_ERROR(ctx, "Dense matrix must be 2-dimensional, but got %d dimensions.",
-                              input_shape->GetDims());
-        return PARAM_INVAILD;
-    }
-
     int64_t rows = input_shape->GetDimSize(0);
     int64_t cols = input_shape->GetDimSize(1);
 
     T* dense_data = reinterpret_cast<T*>(dense_matrix->GetData());
-    if (dense_data == nullptr) {
-        CUST_KERNEL_LOG_ERROR(ctx, "Failed to get dense matrix data.");
-        return PARAM_INVAILD;
-    }
 
-    // Use temporary vectors to collect indices in one pass
-    std::vector<int32_t> temp_indicesX;
-    std::vector<int32_t> temp_indicesY;
+    // Use temporary vectors to collect row counts and column indices
+    std::vector<int32_t> temp_indicesX;  // Will store [row_num, count] pairs
+    std::vector<int32_t> temp_indicesY;  // Will store column indices
 
-    // Single pass to find and store indices of elements above threshold
     for (int64_t i = 0; i < rows; ++i) {
+        int32_t row_count = 0;
         for (int64_t j = 0; j < cols; ++j) {
             T value = dense_data[i * cols + j];
             // Compare absolute value with threshold for both positive and negative values
             if ((value >= threshold) || (value <= -threshold)) {
-                temp_indicesX.push_back(static_cast<int32_t>(i));
-                temp_indicesY.push_back(static_cast<int32_t>(j));
+                row_count++;
+                temp_indicesY.push_back(static_cast<int32_t>(j));  // Store column index
             }
+        }
+        if (row_count > 0) {
+            temp_indicesX.push_back(static_cast<int32_t>(i));      // Row number
+            temp_indicesX.push_back(row_count);                    // Count of non-zeros in this row
         }
     }
 
-    // Set output tensor shapes based on the count of non-zero elements
+    // Set output tensor shapes based on the new format
     Tensor* indicesX = ctx.Output(kIndicesXOutputIndex);
     Tensor* indicesY = ctx.Output(kIndicesYOutputIndex);
 
-    uint32_t non_zero_count = static_cast<uint32_t>(temp_indicesX.size());
+    uint32_t non_zero_count = static_cast<uint32_t>(temp_indicesY.size());  // Total count of non-zero elements
 
     // Create new tensor shapes for outputs
-    std::vector<int64_t> output_shape = {static_cast<int64_t>(non_zero_count)};
-    indicesX->SetTensorShape(std::make_shared<TensorShape>(output_shape));
-    indicesY->SetTensorShape(std::make_shared<TensorShape>(output_shape));
+    std::vector<int64_t> output_shape_indicesX = {static_cast<int64_t>(temp_indicesX.size())};  // Size of [row_num, count] pairs
+    std::vector<int64_t> output_shape_indicesY = {static_cast<int64_t>(non_zero_count)};  // Size of column indices
+
+    indicesX->SetTensorShape(std::make_shared<TensorShape>(output_shape_indicesX));
+    indicesY->SetTensorShape(std::make_shared<TensorShape>(output_shape_indicesY));
 
     // Allocate memory for output tensors if needed
-    indicesX->SetDataSize(non_zero_count * sizeof(int32_t));
+    indicesX->SetDataSize(temp_indicesX.size() * sizeof(int32_t));
     indicesY->SetDataSize(non_zero_count * sizeof(int32_t));
 
     // Copy temporary data to output tensors
-    if (non_zero_count > 0) {
+    if (!temp_indicesX.empty() || !temp_indicesY.empty()) {
         int32_t* indicesX_data = reinterpret_cast<int32_t*>(indicesX->GetData());
         int32_t* indicesY_data = reinterpret_cast<int32_t*>(indicesY->GetData());
-
-        if (indicesX_data == nullptr || indicesY_data == nullptr) {
-            CUST_KERNEL_LOG_ERROR(ctx, "Failed to get output indices data.");
-            return PARAM_INVAILD;
-        }
 
         std::copy(temp_indicesX.begin(), temp_indicesX.end(), indicesX_data);
         std::copy(temp_indicesY.begin(), temp_indicesY.end(), indicesY_data);
