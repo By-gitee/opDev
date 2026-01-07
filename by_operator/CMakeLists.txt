@@ -1,7 +1,7 @@
 # Copyright (c) Huawei Technologies Co., Ltd. 2020-2021. All rights reserved.
 set(CMAKE_BUILD_TYPE "Release")
-set(CMAKE_CXX_FLAGS_RELEASE "-fPIC -O2 -Wall -s")
-set(CMAKE_CXX_FLAGS_DEBUG "-fPIC -O0 -g -Wall")
+set(CMAKE_CXX_FLAGS_RELEASE "-fPIC -O2 -Wall -s -march=armv8.2-a+sve+fp16")
+set(CMAKE_CXX_FLAGS_DEBUG "-fPIC -O0 -g -Wall -march=armv8.2-a+sve+fp16")
 set(CAMKE_SKIP_RPATH TRUE)
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-z,relro,-z,now,-z,noexecstack -pie")
 add_compile_options(

@@ -8,6 +8,7 @@
 #define _DENSE_TO_COO_KERNELS_H_
 
 #include "cpu_kernel.h"
+#include "eigen3/Eigen/Dense"
 
 namespace aicpu {
 class DenseToCOOCpuKernel : public CpuKernel {

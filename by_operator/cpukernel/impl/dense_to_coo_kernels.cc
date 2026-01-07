@@ -110,8 +110,10 @@ uint32_t DenseToCOOCpuKernel::DenseToCOOCompute(CpuKernelContext &ctx)
     std::vector<int64_t> output_shape_indicesX = {static_cast<int64_t>(temp_indicesX.size())};  // Size of [row_num, count] pairs
     std::vector<int64_t> output_shape_indicesY = {static_cast<int64_t>(non_zero_count)};  // Size of column indices
 
-    indicesX->SetTensorShape(std::make_shared<TensorShape>(output_shape_indicesX));
-    indicesY->SetTensorShape(std::make_shared<TensorShape>(output_shape_indicesY));
+    indicesX->GetTensorShape()->SetDimSizes(output_shape_indicesX);
+    indicesY->GetTensorShape()->SetDimSizes(output_shape_indicesY);
+    // indicesX->SetTensorShape(indicesXShape);
+    // indicesY->SetTensorShape(indicesYShape);
 
     // Allocate memory for output tensors if needed
     indicesX->SetDataSize(temp_indicesX.size() * sizeof(int32_t));
