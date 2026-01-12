@@ -1,0 +1,9 @@
+REGISTER_OP("DenseToCSR")
+    .Input("dense_matrix: T")
+    .Input("threshold: T")
+    .Output("matrix_shape: int32")
+    .Output("row_ptr: int32")
+    .Output("col_indices: int32")
+    .Output("values: T")
+    .Attr(
+        "T: {half, float}")

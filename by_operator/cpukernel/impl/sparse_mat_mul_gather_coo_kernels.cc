@@ -117,7 +117,7 @@ uint32_t SparseMatMulGatherCOOCpuKernel::SparseMatMulGatherCOOCompute(CpuKernelC
     const int64_t row_block_num = ix_len / 2;
 
     // total nnz is indicesY length
-    const int64_t nnz = iy_shape->GetDimSize(0);
+    // const int64_t nnz = iy_shape->GetDimSize(0);
 
     // A: [M, K]
     const int64_t M = A_shape->GetDimSize(0);
@@ -147,16 +147,16 @@ uint32_t SparseMatMulGatherCOOCpuKernel::SparseMatMulGatherCOOCompute(CpuKernelC
         C_data[i] = static_cast<T>(0);
     }
 
-    // Validate that counts in indicesX match indicesY length (best-effort)
-    int64_t nnz_check = 0;
-    for (int64_t r = 0; r < row_block_num; ++r) {
-        int32_t cnt = ix[r * 2 + 1];
-        if (cnt > 0) nnz_check += (int64_t)cnt;
-    }
-    if (nnz_check != nnz) {
-        CUST_KERNEL_LOG_ERROR(ctx, "indicesY length (%ld) != sum(indicesX counts) (%ld).", nnz, nnz_check);
-        return PARAM_INVAILD;
-    }
+    // // Validate that counts in indicesX match indicesY length (best-effort)
+    // int64_t nnz_check = 0;
+    // for (int64_t r = 0; r < row_block_num; ++r) {
+    //     int32_t cnt = ix[r * 2 + 1];
+    //     if (cnt > 0) nnz_check += (int64_t)cnt;
+    // }
+    // if (nnz_check != nnz) {
+    //     CUST_KERNEL_LOG_ERROR(ctx, "indicesY length (%ld) != sum(indicesX counts) (%ld).", nnz, nnz_check);
+    //     return PARAM_INVAILD;
+    // }
 
 #ifdef __ARM_FEATURE_SVE
     // -------------------------------------------------------------------------
@@ -272,121 +272,125 @@ uint32_t SparseMatMulGatherCOOCpuKernel::SparseMatMulGatherCOOCompute(CpuKernelC
         return SUCCESS;
     }
 
-    // For Eigen::half, we can also use SVE optimization
-    if (std::is_same<T, Eigen::half>::value) {
-        const Eigen::half* A_h = reinterpret_cast<const Eigen::half*>(A_data);
-        const Eigen::half* B_h = reinterpret_cast<const Eigen::half*>(B_data);
-        Eigen::half* C_h = reinterpret_cast<Eigen::half*>(C_data);
+    // // For Eigen::half, we can also use SVE optimization
+    // if (std::is_same<T, Eigen::half>::value) {
+    //     const Eigen::half* A_h = reinterpret_cast<const Eigen::half*>(A_data);
+    //     const Eigen::half* B_h = reinterpret_cast<const Eigen::half*>(B_data);
+    //     Eigen::half* C_h = reinterpret_cast<Eigen::half*>(C_data);
 
-        int64_t y_off = 0; // offset into indicesY
-        const uint32_t vl = svcnth();  // vector length for float16
-        const svbool_t pg_full = svptrue_b16();  // predicate for float16
+    //     int64_t y_off = 0; // offset into indicesY
+    //     const uint32_t vl = svcnth();  // vector length for float16
+    //     const svbool_t pg_full = svptrue_b16();  // predicate for float16
 
-        for (int64_t r = 0; r < row_block_num; ++r) {
-            const int32_t m_i32 = ix[r * 2 + 0];
-            const int32_t cnt_i32 = ix[r * 2 + 1];
+    //     for (int64_t r = 0; r < row_block_num; ++r) {
+    //         const int32_t m_i32 = ix[r * 2 + 0];
+    //         const int32_t cnt_i32 = ix[r * 2 + 1];
 
-            if (cnt_i32 <= 0) continue;
-            if ((int64_t)m_i32 < 0 || (int64_t)m_i32 >= M) {
-                y_off += (int64_t)cnt_i32;
-                continue;
-            }
+    //         if (cnt_i32 <= 0) continue;
+    //         if ((int64_t)m_i32 < 0 || (int64_t)m_i32 >= M) {
+    //             y_off += (int64_t)cnt_i32;
+    //             continue;
+    //         }
 
-            const int64_t m = (int64_t)m_i32;
-            const int64_t cnt = (int64_t)cnt_i32;
+    //         const int64_t m = (int64_t)m_i32;
+    //         const int64_t cnt = (int64_t)cnt_i32;
 
-            // base element index for A row
-            const int64_t baseA64 = m * K;
-            if (baseA64 > INT32_MAX) {
-                // Fallback scalar if index cannot fit in s32 gather
-                for (int64_t n = 0; n < N; ++n) {
-                    float sum = 0.0f;
-                    for (int64_t t = 0; t < cnt; ++t) {
-                        int32_t k = iy[y_off + t];
-                        if ((uint32_t)k >= (uint32_t)K) continue;
-                        float a = static_cast<float>(A_h[baseA64 + (int64_t)k]);
-                        float b = static_cast<float>(B_h[n * K + (int64_t)k]);
-                        sum += a * b;
-                    }
-                    C_h[m * N + n] = static_cast<Eigen::half>(sum);
-                }
-                y_off += cnt;
-                continue;
-            }
-            const int32_t baseA = (int32_t)baseA64;
+    //         // base element index for A row
+    //         const int64_t baseA64 = m * K;
+    //         if (baseA64 > INT32_MAX) {
+    //             // Fallback scalar if index cannot fit in s32 gather
+    //             for (int64_t n = 0; n < N; ++n) {
+    //                 float sum = 0.0f;
+    //                 for (int64_t t = 0; t < cnt; ++t) {
+    //                     int32_t k = iy[y_off + t];
+    //                     if ((uint32_t)k >= (uint32_t)K) continue;
+    //                     float a = static_cast<float>(A_h[baseA64 + (int64_t)k]);
+    //                     float b = static_cast<float>(B_h[n * K + (int64_t)k]);
+    //                     sum += a * b;
+    //                 }
+    //                 C_h[m * N + n] = static_cast<Eigen::half>(sum);
+    //             }
+    //             y_off += cnt;
+    //             continue;
+    //         }
+    //         const int32_t baseA = (int32_t)baseA64;
 
-            for (int64_t n64 = 0; n64 < N; ++n64) {
-                const int64_t baseB64 = n64 * K;
-                if (baseB64 > INT32_MAX) {
-                    // scalar fallback for this n
-                    float sum = 0.0f;
-                    for (int64_t t = 0; t < cnt; ++t) {
-                        int32_t k = iy[y_off + t];
-                        if ((uint32_t)k >= (uint32_t)K) continue;
-                        float a = static_cast<float>(A_h[baseA64 + (int64_t)k]);
-                        float b = static_cast<float>(B_h[baseB64 + (int64_t)k]);
-                        sum += a * b;
-                    }
-                    C_h[m * N + n64] = static_cast<Eigen::half>(sum);
-                    continue;
-                }
-                const int32_t baseB = (int32_t)baseB64;
+    //         for (int64_t n64 = 0; n64 < N; ++n64) {
+    //             const int64_t baseB64 = n64 * K;
+    //             if (baseB64 > INT32_MAX) {
+    //                 // scalar fallback for this n
+    //                 float sum = 0.0f;
+    //                 for (int64_t t = 0; t < cnt; ++t) {
+    //                     int32_t k = iy[y_off + t];
+    //                     if ((uint32_t)k >= (uint32_t)K) continue;
+    //                     float a = static_cast<float>(A_h[baseA64 + (int64_t)k]);
+    //                     float b = static_cast<float>(B_h[baseB64 + (int64_t)k]);
+    //                     sum += a * b;
+    //                 }
+    //                 C_h[m * N + n64] = static_cast<Eigen::half>(sum);
+    //                 continue;
+    //             }
+    //             const int32_t baseB = (int32_t)baseB64;
 
-                float acc = 0.0f;
+    //             float acc = 0.0f;
 
-                int64_t t = 0;
-                const int64_t vec_num = cnt / (int64_t)vl;
-                const int64_t mod = cnt % (int64_t)vl;
+    //             int64_t t = 0;
+    //             const int64_t vec_num = cnt / (int64_t)vl;
+    //             const int64_t mod = cnt % (int64_t)vl;
 
-                // full vectors
-                for (int64_t v = 0; v < vec_num; ++v) {
-                    svint32_t vk = svld1_s32(pg_full, &iy[y_off + t]); // k indices
+    //             // full vectors
+    //             for (int64_t v = 0; v < vec_num; ++v) {
+    //                 svint32_t vk = svld1_s32(pg_full, &iy[y_off + t]); // k indices
 
-                    // idxA = baseA + k; idxB = baseB + k
-                    svint32_t iA = svadd_n_s32_z(pg_full, vk, baseA);
-                    svint32_t iB = svadd_n_s32_z(pg_full, vk, baseB);
+    //                 // idxA = baseA + k; idxB = baseB + k
+    //                 svint32_t iA = svadd_n_s32_z(pg_full, vk, baseA);
+    //                 svint32_t iB = svadd_n_s32_z(pg_full, vk, baseB);
 
-                    // Convert Eigen::half pointers to __fp16 for SVE operations
-                    const __fp16* A_ptr = reinterpret_cast<const __fp16*>(A_h);
-                    const __fp16* B_ptr = reinterpret_cast<const __fp16*>(B_h);
+    //                 // Convert Eigen::half pointers to __fp16 for SVE operations
+    //                 const svuint32_t* A_ptr = reinterpret_cast<const svuint32_t*>(A_h);
+    //                 const svuint32_t* B_ptr = reinterpret_cast<const svuint32_t*>(B_h);
 
-                    svuint32_t uA = svreinterpret_u32_s32(iA);
-                    svuint32_t uB = svreinterpret_u32_s32(iB);
-                    svfloat16_t vA = svld1_gather_u32index_f16(pg_full, (const float16_t*)A_ptr, uA);
-                    svfloat16_t vB = svld1_gather_u32index_f16(pg_full, (const float16_t*)B_ptr, uB);
+    //                 svuint32_t uA = svreinterpret_u32_s32(iA);
+    //                 svuint32_t uB = svreinterpret_u32_s32(iB);
+    //                 svuint32_t  vA_u16 = svld1uh_gather_s32index_u32(pg_full, A_ptr, uA);
+    //                 svuint32_t  vB_u16 = svld1uh_gather_s32index_u32(pg_full,B_ptr, uB);
+    //                 svfloat16_t vA = svreinterpret_f16_u16(vA_u16);
+    //                 svfloat16_t vB = svreinterpret_f16_u16(vB_u16);
 
-                    svfloat16_t vP = svmul_f16_z(pg_full, vA, vB);
-                    acc += svaddv_f16(pg_full, vP);
+    //                 svfloat16_t vP = svmul_f16_z(pg_full, vA, vB);
+    //                 acc += svaddv_f16(pg_full, vP);
 
-                    t += (int64_t)vl;
-                }
+    //                 t += (int64_t)vl;
+    //             }
 
-                // tail
-                if (mod) {
-                    svbool_t pg = svwhilelt_b16((uint32_t)0, (uint32_t)mod);
-                    svint32_t vk = svld1_s32(pg, &iy[y_off + t]);
+    //             // tail
+    //             if (mod) {
+    //                 svbool_t pg = svwhilelt_b16((uint32_t)0, (uint32_t)mod);
+    //                 svint32_t vk = svld1_s32(pg, &iy[y_off + t]);
 
-                    svint32_t iA = svadd_n_s32_z(pg, vk, baseA);
-                    svint32_t iB = svadd_n_s32_z(pg, vk, baseB);
+    //                 svint32_t iA = svadd_n_s32_z(pg, vk, baseA);
+    //                 svint32_t iB = svadd_n_s32_z(pg, vk, baseB);
 
-                    const __fp16* A_ptr = reinterpret_cast<const __fp16*>(A_h);
-                    const __fp16* B_ptr = reinterpret_cast<const __fp16*>(B_h);
+    //                 const svuint32_t* A_ptr = reinterpret_cast<const svuint32_t*>(A_h);
+    //                 const svuint32_t* B_ptr = reinterpret_cast<const svuint32_t*>(B_h);
 
-                    svfloat16_t vA = svld1_gather_s32index_f16(pg, A_ptr, iA);
-                    svfloat16_t vB = svld1_gather_s32index_f16(pg, B_ptr, iB);
+    //                 svuint32_t vA = svld1uh_gather_s32index_u32(pg, A_ptr, iA);
+    //                 svuint32_t vB = svld1uh_gather_s32index_u32(pg, B_ptr, iB);
+    //                 svfloat16_t vA = svreinterpret_f16_u16(vA_u16);
+    //                 svfloat16_t vB = svreinterpret_f16_u16(vB_u16);
 
-                    svfloat16_t vP = svmul_f16_z(pg, vA, vB);
-                    acc += svaddv_f16(pg, vP);
-                }
+    //                 svfloat16_t vP = svmul_f16_z(pg, vA, vB);
+    //                 acc += svaddv_f16(pg, vP);
+    //             }
 
-                C_h[m * N + n64] = static_cast<Eigen::half>(acc);
-            }
+    //             C_h[m * N + n64] = static_cast<Eigen::half>(acc);
+    //         }
 
-            y_off += cnt;
-        }
+    //         y_off += cnt;
+    //     }
 
-        return SUCCESS;
-    }
+    //     return SUCCESS;
+    // }
 
 //     // NOTE: For other types, we keep the scalar fallback below.
     #endif
@@ -394,35 +398,35 @@ uint32_t SparseMatMulGatherCOOCpuKernel::SparseMatMulGatherCOOCompute(CpuKernelC
     // -------------------------------------------------------------------------
     // Scalar fallback (still using indicesX pairs + indicesY concatenation)
     // -------------------------------------------------------------------------
-    int64_t y_off = 0;
-    for (int64_t r = 0; r < row_block_num; ++r) {
-        int32_t m_i32 = ix[r * 2 + 0];
-        int32_t cnt_i32 = ix[r * 2 + 1];
+    // int64_t y_off = 0;
+    // for (int64_t r = 0; r < row_block_num; ++r) {
+    //     int32_t m_i32 = ix[r * 2 + 0];
+    //     int32_t cnt_i32 = ix[r * 2 + 1];
 
-        if (cnt_i32 <= 0) continue;
-        if ((int64_t)m_i32 < 0 || (int64_t)m_i32 >= M) {
-            y_off += (int64_t)cnt_i32;
-            continue;
-        }
+    //     if (cnt_i32 <= 0) continue;
+    //     if ((int64_t)m_i32 < 0 || (int64_t)m_i32 >= M) {
+    //         y_off += (int64_t)cnt_i32;
+    //         continue;
+    //     }
 
-        const int64_t m = (int64_t)m_i32;
-        const int64_t cnt = (int64_t)cnt_i32;
+    //     const int64_t m = (int64_t)m_i32;
+    //     const int64_t cnt = (int64_t)cnt_i32;
 
-        for (int64_t n = 0; n < N; ++n) {
-            float acc = 0.0f;
-            for (int64_t t = 0; t < cnt; ++t) {
-                int32_t k = iy[y_off + t];
-                if ((uint32_t)k >= (uint32_t)K) continue;
+    //     for (int64_t n = 0; n < N; ++n) {
+    //         float acc = 0.0f;
+    //         for (int64_t t = 0; t < cnt; ++t) {
+    //             int32_t k = iy[y_off + t];
+    //             if ((uint32_t)k >= (uint32_t)K) continue;
 
-                float a = static_cast<float>(A_data[m * K + (int64_t)k]);
-                float b = static_cast<float>(B_data[n * K + (int64_t)k]); // B_T[n,k]
-                acc += a * b;
-            }
-            C_data[m * N + n] = static_cast<T>(acc);
-        }
+    //             float a = static_cast<float>(A_data[m * K + (int64_t)k]);
+    //             float b = static_cast<float>(B_data[n * K + (int64_t)k]); // B_T[n,k]
+    //             acc += a * b;
+    //         }
+    //         C_data[m * N + n] = static_cast<T>(acc);
+    //     }
 
-        y_off += cnt;
-    }
+    //     y_off += cnt;
+    // }
 
     return SUCCESS;
 }

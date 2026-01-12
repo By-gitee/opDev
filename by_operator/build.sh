@@ -192,7 +192,7 @@ if [ $? -ne 0 ]; then
 fi
 
 log "[INFO] Make begin."
-make -j
+make -j2
 if [ $? -ne 0 ]; then
   log "[ERROR] Please check make result."
   exit 1

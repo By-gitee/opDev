@@ -1,0 +1,9 @@
+REGISTER_OP("SparseMatMulTGatherCSR")
+    .Input("matrix_shape: int32")
+    .Input("row_ptr: int32")
+    .Input("col_indices: int32")
+    .Input("values: T")
+    .Input("weight: T")
+    .Output("output:T")
+    .Attr(
+        "T: {half, float}")
