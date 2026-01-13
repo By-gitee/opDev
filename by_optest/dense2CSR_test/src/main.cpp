@@ -29,17 +29,22 @@ OperatorDesc CreateOpDesc()
     // define operator
     std::vector<int64_t> inputShape0{64,64};  // Dense matrix: 64x64
     std::vector<int64_t> inputShape1{1};      // Threshold: scalar
-    std::vector<int64_t> outputShape0{128};    // indicesX: variable length array of int32
-    std::vector<int64_t> outputShape1{2460};    // indicesY: variable length array of int32
-    std::string opType = "DenseToCOO";
+    std::vector<int64_t> outputShape0{2};     // Matrix shape: [rows, cols] - 2 elements of int32
+    std::vector<int64_t> outputShape1{65};    // Row pointer: [rows+1] elements of int32
+    std::vector<int64_t> outputShape2{2460};  // Column indices: variable length array of int32
+    std::vector<int64_t> outputShape3{2460};  // Values: variable length array of float
+    std::string opType = "DenseToCSR";
     aclDataType inputDataType = ACL_FLOAT;    // Input data type
-    aclDataType outputDataType = ACL_INT32;   // Output data type
+    aclDataType outputDataTypeInt32 = ACL_INT32;   // Output data type for shape, rowptr, colindices
+    aclDataType outputDataTypeFloat = ACL_FLOAT;   // Output data type for values
     aclFormat format = ACL_FORMAT_ND;
     OperatorDesc opDesc(opType);
     opDesc.AddInputTensorDesc(inputDataType, inputShape0.size(), inputShape0.data(), format);  // Dense matrix
     opDesc.AddInputTensorDesc(inputDataType, inputShape1.size(), inputShape1.data(), format);  // Threshold
-    opDesc.AddOutputTensorDesc(outputDataType, outputShape0.size(), outputShape0.data(), format);  // indicesX
-    opDesc.AddOutputTensorDesc(outputDataType, outputShape1.size(), outputShape1.data(), format); // indicesY
+    opDesc.AddOutputTensorDesc(outputDataTypeInt32, outputShape0.size(), outputShape0.data(), format);  // Matrix shape
+    opDesc.AddOutputTensorDesc(outputDataTypeInt32, outputShape1.size(), outputShape1.data(), format);  // Row pointer
+    opDesc.AddOutputTensorDesc(outputDataTypeInt32, outputShape2.size(), outputShape2.data(), format);  // Column indices
+    opDesc.AddOutputTensorDesc(outputDataTypeFloat, outputShape3.size(), outputShape3.data(), format);  // Values
 
     return opDesc;
 }
@@ -97,7 +102,7 @@ bool ProcessOutputData(OpRunner &runner)
     return true;
 }
 
-bool RunSparseMatMulTBaseBOp(bool isDevice)
+bool RunDenseToCSROp(bool isDevice)
 {
     // Create op desc
     OperatorDesc opDesc = CreateOpDesc();
@@ -175,7 +180,7 @@ int main()
     }
     bool isDevice = (runMode == ACL_DEVICE);
 
-    if (!RunSparseMatMulTBaseBOp(isDevice)) {
+    if (!RunDenseToCSROp(isDevice)) {
         (void) aclrtResetDevice(deviceId);
         (void) aclFinalize();
         return FAILED;

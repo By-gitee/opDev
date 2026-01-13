@@ -1,6 +1,6 @@
 [
   {
-    "op": "DenseToCOO",
+    "op": "DenseToCSR",
     "input_desc":  [
       {
         "format": "ND",
@@ -16,8 +16,13 @@
     "output_desc": [
       {
         "format": "ND",
-        "shape": [-1],
-        "shape_range": [[0,128]],
+        "shape": [2],
+        "type": "int32"
+      }
+      , 
+      {
+        "format": "ND",
+        "shape": [65],
         "type": "int32"
       }
       , 
@@ -26,6 +31,13 @@
         "shape": [-1],
         "shape_range": [[0,4096]],
         "type": "int32"
+      }
+      , 
+      {
+        "format": "ND",
+        "shape": [-1],
+        "shape_range": [[0,4096]],
+        "type": "float32"
       }
     ]
   }
