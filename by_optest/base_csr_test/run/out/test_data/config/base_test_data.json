@@ -1,0 +1,41 @@
+[
+  {
+    "op": "SparseMatMulTBaseCSR",
+    "input_desc":  [
+      {
+        "format": "ND",
+        "shape": [2],
+        "type": "int32"
+      },
+      {
+        "format": "ND",
+        "shape": [65],
+        "type": "int32"
+      },
+      {
+        "format": "ND",
+        "shape": [-1],
+        "shape_range": [[0,4096]],
+        "type": "int32"
+      },
+      {
+        "format": "ND",
+        "shape": [-1],
+        "shape_range": [[0,4096]],
+        "type": "float32"
+      },
+      {
+        "format": "ND",
+        "shape": [64,64],
+        "type": "float32"
+      }
+    ],
+    "output_desc": [
+      {
+        "format": "ND",
+        "shape": [64, 64],
+        "type": "float32"
+      }
+    ]
+  }
+]
